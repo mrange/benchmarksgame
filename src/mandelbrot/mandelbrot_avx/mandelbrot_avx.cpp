@@ -13,10 +13,10 @@ namespace
   };
 
   constexpr unit_t  unit            ;
-  constexpr auto    min_x    = -1.5 ;
-  constexpr auto    min_y    = -1.0 ;
-  constexpr auto    max_x    =  0.5 ;
-  constexpr auto    max_y    =  1.0 ;
+  constexpr auto    min_x    = -1.5F;
+  constexpr auto    min_y    = -1.0F;
+  constexpr auto    max_x    =  0.5F;
+  constexpr auto    max_y    =  1.0F;
   constexpr auto    max_iter =  50U ;
 
   template<typename T>
@@ -29,7 +29,7 @@ namespace
     return std::make_tuple (diff, std::move (result));
   }
 
-  auto mandelbrot (double x, double y)
+  auto mandelbrot (float x, float y)
   {
     auto xx   = x       ;
     auto yy   = y       ;
@@ -55,13 +55,15 @@ namespace
 
     auto width = (dim - 1) / 8 + 1;
 
-    set.reserve (width*dim);
+    set.resize (width*dim);
 
     auto scalex = (max_x - min_x) / dim;
     auto scaley = (max_y - min_y) / dim;
 
-    for (auto y = 0U; y < dim; ++y)
+    #pragma omp parallel for schedule(guided)
+    for (auto y = 0; y < dim; ++y)
     {
+      auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
         auto bits = 0U;
@@ -76,7 +78,7 @@ namespace
             bits |= 1 << (7U - bit);
           }
         }
-        set.push_back (bits);
+        set[yoffset + w] = bits;
       }
     }
 
@@ -87,7 +89,7 @@ namespace
 
 int main ()
 {
-  auto dim  = 1000;
+  auto dim  = 200;
 
   std::printf ("Generating mandelbrot set %dx%d(%d)\n", dim, dim, max_iter);
 
