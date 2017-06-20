@@ -87,7 +87,7 @@ namespace
 
 int main ()
 {
-  auto dim  = 200;
+  auto dim  = 1000;
 
   std::printf ("Generating mandelbrot set %dx%d(%d)\n", dim, dim, max_iter);
 
