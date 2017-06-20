@@ -63,24 +63,6 @@ namespace
     return cmp_mask;
   }
 
-  auto mandelbrot (float x, float y, float cx, float cy)
-  {
-    auto iter = max_iter;
-    for (; iter > 0; --iter)
-    {
-      auto x2 = x*x;
-      auto y2 = y*y;
-      if (x2 + y2 > 4)
-      {
-        return iter;
-      }
-      y  = 2*x*y   + cy;
-      x  = x2 - y2 + cx;
-    }
-
-    return iter;
-  }
-
   std::vector<std::uint8_t> compute_set (std::size_t const dim)
   {
     std::vector<std::uint8_t> set;
@@ -122,9 +104,13 @@ namespace
 
 }
 
-int main ()
+int main (int argc, char const * argv[])
 {
-  auto dim  = 16000;
+  auto dim  = [argc, argv] ()
+  {
+    auto dim = argc > 1 ? atoi (argv[1]) : 0;
+    return dim > 0 ? dim : 200;
+  } ();
 
   if (dim % 8 != 0)
   {
