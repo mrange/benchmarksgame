@@ -6,6 +6,9 @@
 #include <vector>
 #include <tuple>
 
+#include <emmintrin.h>
+#include <immintrin.h>
+
 namespace
 {
   struct unit_t
@@ -29,21 +32,50 @@ namespace
     return std::make_tuple (diff, std::move (result));
   }
 
-  auto mandelbrot (float x, float y)
+  inline std::uint8_t mandelbrot_avx (__m256 x, __m256 y, __m256 cx, __m256 cy)
   {
-    auto xx   = x       ;
-    auto yy   = y       ;
+    auto cmp_mask = 0;
+
+    for (std::size_t iter = max_iter; iter > 0; --iter)
+    {
+      auto x2         = _mm256_mul_ps (x, x);
+      auto y2         = _mm256_mul_ps (y, y);
+      auto x2py2      = _mm256_add_ps (x2, y2);
+      auto _4         = _mm256_set1_ps (4.0F);
+      auto cmp        = _mm256_cmp_ps (x2py2, _4, _CMP_LT_OQ);
+
+      auto _1         = _mm256_set1_ps (1.0F);
+      auto _0         = _mm256_set1_ps (0.0F);
+      auto inc        = _mm256_blendv_ps (_0, _1, cmp);
+
+      cmp_mask        = _mm256_movemask_ps (cmp);
+
+      if (!cmp_mask)
+      {
+        return 0;
+      }
+
+      auto xy       = _mm256_mul_ps (x, y);
+      y             = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy);
+      x             = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
+    }
+
+    return cmp_mask;
+  }
+
+  auto mandelbrot (float x, float y, float cx, float cy)
+  {
     auto iter = max_iter;
     for (; iter > 0; --iter)
     {
-      auto xx2 = xx*xx;
-      auto yy2 = yy*yy;
-      if (xx2 + yy2 > 4)
+      auto x2 = x*x;
+      auto y2 = y*y;
+      if (x2 + y2 > 4)
       {
         return iter;
       }
-      yy  = 2*xx*yy   + y;
-      xx  = xx2 - yy2 + x;
+      y  = 2*x*y   + cy;
+      x  = x2 - y2 + cx;
     }
 
     return iter;
@@ -53,31 +85,34 @@ namespace
   {
     std::vector<std::uint8_t> set;
 
-    auto width = (dim - 1) / 8 + 1;
+    auto width = dim / 8; // modulo 8 checked earlier
 
     set.resize (width*dim);
-
-    auto scalex = (max_x - min_x) / dim;
-    auto scaley = (max_y - min_y) / dim;
 
     #pragma omp parallel for schedule(guided)
     for (auto y = 0; y < dim; ++y)
     {
+      auto scalex = (max_x - min_x) / dim;
+      auto scaley = (max_y - min_y) / dim;
+
+      auto incx   = _mm256_set_ps (
+          0*scalex
+        , 1*scalex
+        , 2*scalex
+        , 3*scalex
+        , 4*scalex
+        , 5*scalex
+        , 6*scalex
+        , 7*scalex
+        );
+
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
-        auto bits = 0U;
-        for (auto bit = 0U; bit < 8U; ++bit)
-        {
-          auto x = w*8 + bit;
-
-          auto i = mandelbrot (scalex*x + min_x, scaley*y + min_y);
-
-          if (i == 0)
-          {
-            bits |= 1 << (7U - bit);
-          }
-        }
+        auto x    = w*8;
+        auto cx   = _mm256_add_ps (_mm256_set1_ps (scalex*x + min_x), incx);
+        auto cy   = _mm256_set1_ps (scalex*y + min_y);
+        auto bits = mandelbrot_avx (cx, cy, cx, cy);
         set[yoffset + w] = bits;
       }
     }
@@ -89,7 +124,13 @@ namespace
 
 int main ()
 {
-  auto dim  = 200;
+  auto dim  = 16000;
+
+  if (dim % 8 != 0)
+  {
+    std::printf ("Dimension must be modulo 8\n");
+    return 999;
+  }
 
   std::printf ("Generating mandelbrot set %dx%d(%d)\n", dim, dim, max_iter);
 
