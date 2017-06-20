@@ -10,7 +10,7 @@ namespace
   constexpr auto min_y    = -1.0 ;
   constexpr auto max_x    =  0.5 ;
   constexpr auto max_y    =  1.0 ;
-  constexpr auto max_iter =  49U ;
+  constexpr auto max_iter =  99U ;
 
   auto mandelbrot(double x, double y)
   {
@@ -68,7 +68,7 @@ namespace
 
 }
 
-int main()
+int main ()
 {
   auto dim  = 1000;
 
