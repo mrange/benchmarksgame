@@ -1,8 +1,6 @@
 // g++-7 --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mfpmath=sse -msse3 -fopenmp mandelbrot_reference.cpp
 
-#ifdef MSVC
-# include "stdafx.h"
-#endif
+#include "stdafx.h"
 
 #include <cstddef>
 #include <cstdio>

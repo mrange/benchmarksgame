@@ -1,3 +1,4 @@
+#ifdef _MSVC_LANG
 #pragma once
 
 #include "targetver.h"
@@ -10,4 +11,4 @@
 
 #include <emmintrin.h>
 #include <immintrin.h>
-
+#endif
