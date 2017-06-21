@@ -1,4 +1,4 @@
-// g++-7 --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mavx -msse3 -fopenmp mandelbrot_avx.cpp
+// g++-7 -g --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mavx -fopenmp mandelbrot_avx.cpp
 
 #ifdef MSVC
 # include "stdafx.h"
