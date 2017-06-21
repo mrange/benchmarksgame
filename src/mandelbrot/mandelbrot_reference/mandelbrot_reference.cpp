@@ -1,4 +1,8 @@
-#include "stdafx.h"
+// g++-7 --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mfpmath=sse -msse3 -fopenmp mandelbrot_reference.cpp
+
+#ifdef MSVC
+# include "stdafx.h"
+#endif
 
 #include <cstddef>
 #include <cstdio>
@@ -85,9 +89,19 @@ namespace
 
 }
 
-int main ()
+int main (int argc, char const * argv[])
 {
-  auto dim  = 200;
+  auto dim  = [argc, argv] ()
+  {
+    auto dim = argc > 1 ? atoi (argv[1]) : 0;
+    return dim > 0 ? dim : 200;
+  } ();
+
+  if (dim % 8 != 0)
+  {
+    std::printf ("Dimension must be modulo 8\n");
+    return 999;
+  }
 
   std::printf ("Generating mandelbrot set %dx%d(%d)\n", dim, dim, max_iter);
 

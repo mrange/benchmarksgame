@@ -1,4 +1,8 @@
-#include "stdafx.h"
+// g++-7 --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mavx -msse3 -fopenmp mandelbrot_avx.cpp
+
+#ifdef MSVC
+# include "stdafx.h"
+#endif
 
 #include <cstddef>
 #include <cstdio>
@@ -43,11 +47,6 @@ namespace
       auto x2py2      = _mm256_add_ps (x2, y2);
       auto _4         = _mm256_set1_ps (4.0F);
       auto cmp        = _mm256_cmp_ps (x2py2, _4, _CMP_LT_OQ);
-
-      auto _1         = _mm256_set1_ps (1.0F);
-      auto _0         = _mm256_set1_ps (0.0F);
-      auto inc        = _mm256_blendv_ps (_0, _1, cmp);
-
       cmp_mask        = _mm256_movemask_ps (cmp);
 
       if (!cmp_mask)
@@ -71,9 +70,12 @@ namespace
 
     set.resize (width*dim);
 
+    auto sdim = static_cast<int> (dim);
+
     #pragma omp parallel for schedule(guided)
-    for (auto y = 0; y < dim; ++y)
+    for (auto sy = 0; sy < sdim; ++sy)
     {
+      auto y      = static_cast<std::size_t> (sy);
       auto scalex = (max_x - min_x) / dim;
       auto scaley = (max_y - min_y) / dim;
 
@@ -93,7 +95,7 @@ namespace
       {
         auto x    = w*8;
         auto cx   = _mm256_add_ps (_mm256_set1_ps (scalex*x + min_x), incx);
-        auto cy   = _mm256_set1_ps (scalex*y + min_y);
+        auto cy   = _mm256_set1_ps (scaley*y + min_y);
         auto bits = mandelbrot_avx (cx, cy, cx, cy);
         set[yoffset + w] = bits;
       }

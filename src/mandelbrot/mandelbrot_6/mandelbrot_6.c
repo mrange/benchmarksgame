@@ -122,7 +122,7 @@ int main(int argc, char ** argv)
 {
     // get width/height from arguments
 
-    long wid_ht = 16000;
+    long wid_ht = 200;
     if (argc >= 2)
     {
         wid_ht = atoi(argv[1]);
@@ -163,7 +163,7 @@ int main(int argc, char ** argv)
     long use8 = wid_ht%64;
     if (use8)
     {
-        // process 8 pixels (one byte) at a time    
+        // process 8 pixels (one byte) at a time
         #pragma omp parallel for schedule(guided)
         for(long y=0; y<wid_ht; y++)
         {
