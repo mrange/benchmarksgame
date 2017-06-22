@@ -13,16 +13,10 @@
 
 namespace
 {
-  struct unit_t
-  {
-  };
-
-  constexpr unit_t  unit            ;
-  constexpr auto    min_x    = -1.5F;
-  constexpr auto    min_y    = -1.0F;
-  constexpr auto    max_x    =  0.5F;
-  constexpr auto    max_y    =  1.0F;
-  constexpr auto    max_iter =  50U ;
+  constexpr auto    min_x    = -1.5F              ;
+  constexpr auto    min_y    = -1.0F              ;
+  constexpr auto    max_x    =  0.5F              ;
+  constexpr auto    max_y    =  1.0F              ;
 
   template<typename T>
   auto time_it (T a)
@@ -34,28 +28,53 @@ namespace
     return std::make_tuple (diff, std::move (result));
   }
 
-  inline std::uint8_t mandelbrot_avx (__m256 x, __m256 y, __m256 cx, __m256 cy)
-  {
-    auto cmp_mask = 0;
+#define MANDEL_ITERATION()                                \
+        x2  = _mm256_mul_ps (x, x);                       \
+        y2  = _mm256_mul_ps (y, y);                       \
+        xy  = _mm256_mul_ps (x, y);                       \
+        y   = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy);\
+        x   = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
+#define MANDEL_CMPMASK() \
+        cmp_mask      = _mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2, y2), _mm256_set1_ps (4.0F), _CMP_LT_OQ));
 
-    for (std::size_t iter = max_iter; iter > 0; --iter)
+  __forceinline std::uint8_t mandelbrot_avx (__m256 cx, __m256 cy)
+  {
+    auto x        = cx;
+    auto y        = cy;
+    auto cmp_mask = 0 ;
+
+    __m256 x2, y2, xy;
+
+    // 6 * 8 + 2 => 50 iterations 
+    auto iter = 6;
+    do
     {
-      auto x2         = _mm256_mul_ps (x, x);
-      auto y2         = _mm256_mul_ps (y, y);
-      auto x2py2      = _mm256_add_ps (x2, y2);
-      auto _4         = _mm256_set1_ps (4.0F);
-      auto cmp        = _mm256_cmp_ps (x2py2, _4, _CMP_LT_OQ);
-      cmp_mask        = _mm256_movemask_ps (cmp);
+      // 8 inner steps
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+
+      MANDEL_CMPMASK();
 
       if (!cmp_mask)
       {
         return 0;
       }
 
-      auto xy       = _mm256_mul_ps (x, y);
-      y             = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy);
-      x             = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
-    }
+      --iter;
+
+    } while (iter && cmp_mask);
+
+    // Last 2 steps
+    MANDEL_ITERATION();
+    MANDEL_ITERATION();
+
+    MANDEL_CMPMASK();
 
     return cmp_mask;
   }
@@ -94,7 +113,7 @@ namespace
         auto x    = w*8;
         auto cx   = _mm256_add_ps (_mm256_set1_ps (scalex*x + min_x), incx);
         auto cy   = _mm256_set1_ps (scaley*y + min_y);
-        auto bits = mandelbrot_avx (cx, cy, cx, cy);
+        auto bits = mandelbrot_avx (cx, cy);
         set[yoffset + w] = bits;
       }
     }
@@ -118,7 +137,7 @@ int main (int argc, char const * argv[])
     return 999;
   }
 
-  std::printf ("Generating mandelbrot set %dx%d(%d)\n", dim, dim, max_iter);
+  std::printf ("Generating mandelbrot set %dx%d(50)\n", dim, dim);
 
   auto res  = time_it ([dim] { return compute_set(dim); });
 

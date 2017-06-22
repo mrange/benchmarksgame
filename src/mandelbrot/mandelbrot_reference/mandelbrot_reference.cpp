@@ -10,11 +10,6 @@
 
 namespace
 {
-  struct unit_t
-  {
-  };
-
-  constexpr unit_t  unit            ;
   constexpr auto    min_x    = -1.5 ;
   constexpr auto    min_y    = -1.0 ;
   constexpr auto    max_x    =  0.5 ;
@@ -31,21 +26,21 @@ namespace
     return std::make_tuple (diff, std::move (result));
   }
 
-  auto mandelbrot (double x, double y)
+  auto mandelbrot (double cx, double cy)
   {
-    auto xx   = x       ;
-    auto yy   = y       ;
+    auto x    = cx      ;
+    auto y    = cy      ;
     auto iter = max_iter;
     for (; iter > 0; --iter)
     {
-      auto xx2 = xx*xx;
-      auto yy2 = yy*yy;
-      if (xx2 + yy2 > 4)
+      auto x2 = x*x;
+      auto y2 = y*y;
+      if (x2 + y2 > 4)
       {
         return iter;
       }
-      yy  = 2*xx*yy   + y;
-      xx  = xx2 - yy2 + x;
+      y = 2*x*y   + y;
+      x = x2 - y2 + x;
     }
 
     return iter;
