@@ -83,11 +83,13 @@ namespace
   {
     std::vector<std::uint8_t> set;
 
-    auto width = dim / 8; // modulo 8 checked earlier
+    auto width  = dim / 8; // modulo 8 checked earlier
 
     set.resize (width*dim);
 
-    auto sdim = static_cast<int> (dim);
+    auto pset   = &set.front ();
+
+    auto sdim   = static_cast<int> (dim);
 
     #pragma omp parallel for schedule(guided)
     for (auto sy = 0; sy < sdim; ++sy)
@@ -114,7 +116,7 @@ namespace
         auto cx   = _mm256_add_ps (_mm256_set1_ps (scalex*x + min_x), incx);
         auto cy   = _mm256_set1_ps (scaley*y + min_y);
         auto bits = mandelbrot_avx (cx, cy);
-        set[yoffset + w] = bits;
+        pset[yoffset + w] = bits;
       }
     }
 
