@@ -146,7 +146,7 @@ int main (int argc, char const * argv[])
 
   std::printf ("  it took %lld ms\n", ms);
 
-  auto file = std::fopen ("mandelbrot.pbm", "wb");
+  auto file = std::fopen ("mandelbrot_avx.pbm", "wb");
 
   std::fprintf (file, "P4\n%d %d\n", dim, dim);
   std::fwrite (&set.front (), 1, set.size (), file);
