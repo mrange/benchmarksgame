@@ -29,13 +29,13 @@ namespace
   }
 
 #define MANDEL_ITERATION()                                \
+        xy  = _mm256_mul_ps (x, y);                       \
         x2  = _mm256_mul_ps (x, x);                       \
         y2  = _mm256_mul_ps (y, y);                       \
-        xy  = _mm256_mul_ps (x, y);                       \
         y   = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy);\
-        x   = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
+        x   = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx)
 #define MANDEL_CMPMASK() \
-        cmp_mask      = _mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2, y2), _mm256_set1_ps (4.0F), _CMP_LT_OQ));
+        cmp_mask      = _mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2, y2), _mm256_set1_ps (4.0F), _CMP_LT_OQ))
 
   __forceinline std::uint8_t mandelbrot_avx (__m256 cx, __m256 cy)
   {
