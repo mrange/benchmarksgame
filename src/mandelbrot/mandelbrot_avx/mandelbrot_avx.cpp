@@ -11,6 +11,12 @@
 #include <emmintrin.h>
 #include <immintrin.h>
 
+#ifdef _MSVC_LANG
+# define MANDEL_INLINE __forceinline
+#else
+# define MANDEL_INLINE inline
+#endif
+
 namespace
 {
   constexpr auto    min_x    = -1.5F              ;
@@ -37,7 +43,7 @@ namespace
 #define MANDEL_CMPMASK() \
         cmp_mask      = _mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2, y2), _mm256_set1_ps (4.0F), _CMP_LT_OQ))
 
-  __forceinline std::uint8_t mandelbrot_avx (__m256 cx, __m256 cy)
+  MANDEL_INLINE std::uint8_t mandelbrot_avx (__m256 cx, __m256 cy)
   {
     auto x        = cx;
     auto y        = cy;
