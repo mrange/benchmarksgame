@@ -43,23 +43,30 @@ namespace
         x[i]  = _mm256_add_ps (_mm256_sub_ps (x2[i], y2[i]) , cx[i]);
 
 //#define MANDEL_ITERATION() MANDEL_INDEPENDENT(0) MANDEL_INDEPENDENT(1) MANDEL_DEPENDENT(0) MANDEL_DEPENDENT(1)
-#define MANDEL_ITERATION() MANDEL_INDEPENDENT(0) MANDEL_DEPENDENT(0) MANDEL_INDEPENDENT(1) MANDEL_DEPENDENT(1)
+#define MANDEL_ITERATION()  \
+  MANDEL_INDEPENDENT(0)     \
+  MANDEL_DEPENDENT(0)       \
+  MANDEL_INDEPENDENT(1)     \
+  MANDEL_DEPENDENT(1)       \
+  MANDEL_INDEPENDENT(2)     \
+  MANDEL_DEPENDENT(2)
 
 #define MANDEL_CMPMASK()  \
         cmp_mask      =   \
-            (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[0], y2[0]), _mm256_set1_ps (4.0F), _CMP_LT_OQ))     ) \
-          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[1], y2[1]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 8)
+            (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[0], y2[0]), _mm256_set1_ps (4.0F), _CMP_LT_OQ))      ) \
+          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[1], y2[1]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 8 ) \
+          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[2], y2[2]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 16)
 
-  MANDEL_INLINE std::uint16_t mandelbrot_avx (__m256 cx[2], __m256 cy[2])
+  MANDEL_INLINE std::uint32_t mandelbrot_avx (__m256 cx[3], __m256 cy[3])
   {
 
-    __m256  x[2] {cx[0], cx[1]};
-    __m256  y[2] {cy[0], cy[1]};
-    __m256 x2[2];
-    __m256 y2[2]; 
-    __m256 xy[2]; 
+    __m256  x[3] {cx[0], cx[1], cx[2]};
+    __m256  y[3] {cy[0], cy[1], cy[2]};
+    __m256 x2[3];
+    __m256 y2[3]; 
+    __m256 xy[3]; 
 
-    std::uint16_t cmp_mask;
+    std::uint32_t cmp_mask;
 
     // 6 * 8 + 2 => 50 iterations 
     auto iter = 6;
@@ -100,15 +107,16 @@ namespace
     std::vector<std::uint8_t> set;
 
     auto width  = dim / 8; // modulo 8 checked earlier
+    auto height = ((dim + 2) / 3) * 3;
 
-    set.resize (width*dim);
+    set.resize (width*height);
 
     auto pset   = &set.front ();
 
     auto sdim   = static_cast<int> (dim);
 
     #pragma omp parallel for schedule(guided)
-    for (auto sy = 0; sy < sdim; sy += 2)
+    for (auto sy = 0; sy < sdim; sy += 3)
     {
       auto y      = static_cast<std::size_t> (sy);
       auto scalex = (max_x - min_x) / dim;
@@ -131,14 +139,18 @@ namespace
         auto x      = w*8;
         auto cx1    = _mm256_add_ps  (_mm256_set1_ps (scalex*x + min_x), incx);
         auto cy1    = _mm256_set1_ps (scaley*y + min_y);
-        auto cy2    = _mm256_add_ps  (cy1, _mm256_set1_ps (scaley));
-        __m256 cx[] = { cx1, cx1 };
-        __m256 cy[] = { cy1, cy2 };
+        auto cy2    = _mm256_add_ps  (cy1, _mm256_set1_ps (1*scaley));
+        auto cy3    = _mm256_add_ps  (cy1, _mm256_set1_ps (2*scaley));
+        __m256 cx[] = { cx1, cx1, cx1 };
+        __m256 cy[] = { cy1, cy2, cy3 };
         auto bits2  = mandelbrot_avx (cx, cy);
-        pset[yoffset         + w] = 0xFF & bits2;
-        pset[yoffset + width + w] = 0xFF & (bits2 >> 8);
+        pset[yoffset           + w] = 0xFF & bits2;
+        pset[yoffset + 1*width + w] = 0xFF & (bits2 >> 8);
+        pset[yoffset + 2*width + w] = 0xFF & (bits2 >> 16);
       }
     }
+
+    set.resize (width*dim);
 
     return set;
   }
