@@ -47,7 +47,7 @@ let main argv =
   do
     use fs = System.IO.File.Create "mandelbrot_fsharp.pbm"
     use ss = new System.IO.StreamWriter (fs)
-    ss.WriteLine (sprintf "P4\n%d %d\n" dim dim)
+    ss.Write (sprintf "P4\n%d %d\n" dim dim)
     ss.Flush ()
     fs.Write (pixels, 0, pixels.Length)
 
