@@ -39,8 +39,8 @@ namespace
       {
         return iter;
       }
-      y = 2*x*y   + y;
-      x = x2 - y2 + x;
+      y = 2*x*y   + cy  ;
+      x = x2 - y2 + cx  ;
     }
 
     return iter;

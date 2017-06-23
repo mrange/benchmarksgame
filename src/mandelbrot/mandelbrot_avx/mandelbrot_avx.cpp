@@ -47,20 +47,19 @@ namespace
 
 #define MANDEL_CMPMASK()  \
         cmp_mask      =   \
-            (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[0], y2[0]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 8) \
-          |  _mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[1], y2[1]), _mm256_set1_ps (4.0F), _CMP_LT_OQ))
+            (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[0], y2[0]), _mm256_set1_ps (4.0F), _CMP_LT_OQ))     ) \
+          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[1], y2[1]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 8)
 
-  MANDEL_INLINE std::uint16_t mandelbrot_avx (__m256 cx1, __m256 cy1, __m256 cx2, __m256 cy2)
+  MANDEL_INLINE std::uint16_t mandelbrot_avx (__m256 cx[2], __m256 cy[2])
   {
-    auto cmp_mask = 0 ;
 
-    __m256 cx[2] {cx1, cx2};
-    __m256 cy[2] {cy1, cy2};
-    __m256  x[2] {cx1, cx2};
-    __m256  y[2] {cy1, cy2};
+    __m256  x[2] {cx[0], cx[1]};
+    __m256  y[2] {cy[0], cy[1]};
     __m256 x2[2];
     __m256 y2[2]; 
     __m256 xy[2]; 
+
+    std::uint16_t cmp_mask;
 
     // 6 * 8 + 2 => 50 iterations 
     auto iter = 6;
@@ -129,13 +128,15 @@ namespace
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
-        auto x    = w*8;
-        auto cx   = _mm256_add_ps  (_mm256_set1_ps (scalex*x + min_x), incx);
-        auto cy1  = _mm256_set1_ps (scaley*y + min_y);
-        auto cy2  = _mm256_add_ps  (cy1, _mm256_set1_ps (scaley));
-        auto bits2= mandelbrot_avx (cx, cy1, cx, cy2);
-        pset[yoffset         + w] = bits2 >> 8;
-        pset[yoffset + width + w] = 0xFF & bits2;
+        auto x      = w*8;
+        auto cx1    = _mm256_add_ps  (_mm256_set1_ps (scalex*x + min_x), incx);
+        auto cy1    = _mm256_set1_ps (scaley*y + min_y);
+        auto cy2    = _mm256_add_ps  (cy1, _mm256_set1_ps (scaley));
+        __m256 cx[] = { cx1, cx1 };
+        __m256 cy[] = { cy1, cy2 };
+        auto bits2  = mandelbrot_avx (cx, cy);
+        pset[yoffset         + w] = 0xFF & bits2;
+        pset[yoffset + width + w] = 0xFF & (bits2 >> 8);
       }
     }
 
