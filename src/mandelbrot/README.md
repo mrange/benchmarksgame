@@ -201,12 +201,34 @@ So by processing 8 pixels at the time rather than 2 pixels at the time we would 
 
 | Algorithm         | Time  | Speedup |
 | ----------------- | ----- | ------- |
-| mandelbrot_6      | 1.3s  | 1x      |
-| F# (reference)    | 28s   | -17x    |
-| C++ (reference)   | 24s   | ?x      |
+| mandelbrot_6      | 1.13s | 1x      |
+| F# (reference)    | 28s   | -24x    |
+| C++ (reference)   | 22s   | -20x    |
 | C++ (AVX)         | _     | ?x      |
 | C++ (unroll)      | _     | ?x      |
-| C++ (multiple)    | _     | ?x      |
+| C++ (multiple)    | 290ms | 3.9x    |
+
+16000x16000(50)
+Loops: 26030813
+
+Clock Frequency: 3.4Ghz
+Cores: 4
+Architecture: Ivy Bridge
+
+| opcode            | Latency  | Throughput | #/iteration |  Latency'  | Throughput' |
+| ----------------- | -------- | ---------- | ----------- |  --------  | ----------  |
+| vmulps            | 5        | 1          | 96          |  480       | 96          |
+| vaddps            | 3        | 1          | 100         |  300       | 100         |
+| vsubps            | 3        | 1          | 32          |  96        | 32          |
+| vcmpps            | 3        | 1          | 4           |  12        | 4           |
+| vmovmskps         | 1        | 1          | 4           |  4         | 4           |
+
+
+Total latency/iteration: 892
+Total throughput/iteration: 236
+
+Efficiency: 45%
+
 
 ## Appendix
 
