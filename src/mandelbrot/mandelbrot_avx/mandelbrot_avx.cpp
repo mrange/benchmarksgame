@@ -37,12 +37,11 @@ namespace
 #define MANDEL_INDEPENDENT(i)                                         \
         xy[i] = _mm256_mul_ps (x[i], y[i]);                           \
         x2[i] = _mm256_mul_ps (x[i], x[i]);                           \
-        y2[i] = _mm256_mul_ps (y[i], y[i]);                           
+        y2[i] = _mm256_mul_ps (y[i], y[i]);
 #define MANDEL_DEPENDENT(i)                                           \
         y[i]  = _mm256_add_ps (_mm256_add_ps (xy[i], xy[i]) , cy[i]); \
         x[i]  = _mm256_add_ps (_mm256_sub_ps (x2[i], y2[i]) , cx[i]);
 
-//#define MANDEL_ITERATION() MANDEL_INDEPENDENT(0) MANDEL_INDEPENDENT(1) MANDEL_DEPENDENT(0) MANDEL_DEPENDENT(1)
 #define MANDEL_ITERATION()  \
   MANDEL_INDEPENDENT(0)     \
   MANDEL_DEPENDENT(0)       \
@@ -66,12 +65,12 @@ namespace
     __m256  x[4] {cx[0], cx[1], cx[2], cx[3]};
     __m256  y[4] {cy[0], cy[1], cy[2], cy[3]};
     __m256 x2[4];
-    __m256 y2[4]; 
-    __m256 xy[4]; 
+    __m256 y2[4];
+    __m256 xy[4];
 
     std::uint32_t cmp_mask;
 
-    // 6 * 8 + 2 => 50 iterations 
+    // 6 * 8 + 2 => 50 iterations
     auto iter = 6;
     do
     {

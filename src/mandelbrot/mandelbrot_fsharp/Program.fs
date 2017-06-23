@@ -3,7 +3,7 @@
   sw.Start ()
   fun () -> sw.ElapsedMilliseconds
 
-let timeIt a = 
+let timeIt a =
   System.GC.Collect (2, System.GCCollectionMode.Forced, true)
 
   let inline cc g       = System.GC.CollectionCount g
@@ -21,7 +21,7 @@ let timeIt a =
 [<EntryPoint>]
 let main argv =
   // Argument is the desired x/y size of the set
-  let dim     = 
+  let dim     =
     let dim = if argv.Length > 0 then int argv.[0] else 200
     max dim 200
   let dimf    = float dim
@@ -33,7 +33,7 @@ let main argv =
   let maxX    =  0.5
   let maxY    =  1.0
   // More iterations means a more accurate visualization of the mandelbrot set
-  let maxIter =  50 
+  let maxIter =  50
 
   let scalex  = (maxX - minX) / dimf;
   let scaley  = (maxY - minY) / dimf;

@@ -189,7 +189,11 @@ However, for the purpose of this exercise this is unnecessary as we will generat
   }
 ```
 
-We also switched to single-precision floats which means that
+We also switched to single-precision floats.
+
+So by processing 8 pixels at the time rather than 2 pixels at the time we would expect this to perform roughly 4x faster than `mandelbrot_6`.
+
+
 
 ## Appendix
 
