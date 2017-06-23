@@ -34,14 +34,15 @@ namespace
     return std::make_tuple (diff, std::move (result));
   }
 
-#define MANDEL_SUB_ITERATION(i)                                       \
+#define MANDEL_INDEPENDENT(i)                                         \
         xy[i] = _mm256_mul_pd (x[i], y[i]);                           \
         x2[i] = _mm256_mul_pd (x[i], x[i]);                           \
-        y2[i] = _mm256_mul_pd (y[i], y[i]);                           \
+        y2[i] = _mm256_mul_pd (y[i], y[i]);                           
+#define MANDEL_DEPENDENT(i)                                           \
         y[i]  = _mm256_add_pd (_mm256_add_pd (xy[i], xy[i]) , cy[i]); \
-        x[i]  = _mm256_add_pd (_mm256_sub_pd (x2[i], y2[i]) , cx[i])
+        x[i]  = _mm256_add_pd (_mm256_sub_pd (x2[i], y2[i]) , cx[i]);
 
-#define MANDEL_ITERATION() MANDEL_SUB_ITERATION(0); MANDEL_SUB_ITERATION(1)
+#define MANDEL_ITERATION() MANDEL_INDEPENDENT(0) MANDEL_INDEPENDENT(1) MANDEL_DEPENDENT(0) MANDEL_DEPENDENT(1)
 
 #define MANDEL_CMPMASK()  \
         cmp_mask      =   \
