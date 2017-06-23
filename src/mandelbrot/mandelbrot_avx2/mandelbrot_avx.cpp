@@ -42,7 +42,8 @@ namespace
         y[i]  = _mm256_add_pd (_mm256_add_pd (xy[i], xy[i]) , cy[i]); \
         x[i]  = _mm256_add_pd (_mm256_sub_pd (x2[i], y2[i]) , cx[i]);
 
-#define MANDEL_ITERATION() MANDEL_INDEPENDENT(0) MANDEL_INDEPENDENT(1) MANDEL_DEPENDENT(0) MANDEL_DEPENDENT(1)
+//#define MANDEL_ITERATION() MANDEL_INDEPENDENT(0) MANDEL_INDEPENDENT(1) MANDEL_DEPENDENT(0) MANDEL_DEPENDENT(1)
+#define MANDEL_ITERATION() MANDEL_INDEPENDENT(0) MANDEL_DEPENDENT(0) MANDEL_INDEPENDENT(1) MANDEL_DEPENDENT(1)
 
 #define MANDEL_CMPMASK()  \
         cmp_mask      =   \
