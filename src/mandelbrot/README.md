@@ -91,3 +91,148 @@ let main argv =
 ```
 
 The results of the program can be viewed using: http://paulcuth.me.uk/netpbm-viewer/
+
+At the benchmark site the [`mandelbrot_6`](http://benchmarksgame.alioth.debian.org/u64q/program.php?test=mandelbrot&lang=gcc&id=6) generates a 16,000x16,000 mandelbrot set in 1.65 sec.
+
+The F# program generates the same set in 28 sec on my machine, roughly 17x times slower.
+
+## Can the best algorithm be beaten?
+
+I analyzed the `mandelbrot_6` program to understand if it can be improved upon.
+
+`mandelbrot_6` is written in C and uses all cores available through OpenMP to get a roughly 4x speedup on quad core machines such as mine. In addition the program uses SSE3 in order to compute two pixels in parallel.
+
+If we used AVX over SSE3 it would gives us twice the computation power. In addition, for the coordinates choses we don't need really need double precision floats, if we used single precision floats we could process eight pixels in parallel.
+
+This makes me believe that `mandelbrot_6` could be made 4x times faster by using AVX (2x) and single precision floats (2x).
+
+Another, approach is to use the GPU but that is a topic for a another post.
+
+.NET has limited support for SSE and no support for AVX which means I will use C++.
+
+## Applying AVX
+
+I had written AVX accelerated mandelbrot set generator previously:
+
+```C++
+  inline __m256d mandelbrot_avx (__m256d x, __m256d y, __m256d cx, __m256d cy, std::size_t max_iter)
+  {
+    auto acc = _mm256_set1_pd (0.0);
+
+    for (std::size_t iter = max_iter; iter > 0; --iter)
+    {
+      // Basically x*x but does so for 4 doubles in parallel
+      auto x2         = _mm256_mul_pd  (x, x);
+      auto y2         = _mm256_mul_pd  (y, y);
+      auto r2         = _mm256_add_pd  (x2, y2);
+      auto _4         = _mm256_set1_pd (4.0);
+      // Compares 4 doubles against 4.0 to check for infinity
+      auto cmp        = _mm256_cmp_pd  (r2, _4, _CMP_LT_OQ);
+
+      // Using the parallel comparison we generate a comparison mask
+      //  where the 4 lower bits holds the result of the comparison
+      auto cmp_mask   = _mm256_movemask_pd (cmp);
+
+      // If all bits are 0 it means all comparisons where greater than 4. so we can bail
+      if (!cmp_mask)
+      {
+        return acc;
+      }
+
+      // acc contains 4 counters, we need to increment them
+      //  depending on the cmp result. If the comparison is greater than 4. we shouldn't
+      //  increment the corresponding float, if it less we should increase it.
+      auto _1         = _mm256_set1_pd (1.0);
+      auto _0         = _mm256_set1_pd (0.0);
+      auto inc        = _mm256_blendv_pd (_0, _1, cmp);
+      acc           = _mm256_add_pd (acc, inc);
+
+      // Compute new x & y values
+      auto xy       = _mm256_mul_pd (x, y);
+      y             = _mm256_add_pd (_mm256_add_pd (xy, xy) , cy);
+      x             = _mm256_add_pd (_mm256_sub_pd (x2, y2) , cx);
+    }
+
+    return acc;
+  }
+```
+
+This keeps track of how many iterations it took before it was determined that the point didn't belong the mandelbrot set. This is often used to color the mandelbrot set.
+
+However, for the purpose of this exercise this is unnecessary as we will generate a black & white set, so it can be rewritten into this:
+
+```C++
+  inline int mandelbrot_avx (__m256 x, __m256 y, __m256 cx, __m256 cy, std::size_t max_iter)
+  {
+    int cmp_mask = 0;
+
+    for (std::size_t iter = max_iter; iter > 0; --iter)
+    {
+      auto x2         = _mm256_mul_ps  (x, x);
+      auto y2         = _mm256_mul_ps  (y, y);
+      auto r2         = _mm256_add_ps  (x2, y2);
+      auto _4         = _mm256_set1_ps (4.0);
+      auto cmp        = _mm256_cmp_ps  (r2, _4, _CMP_LT_OQ);
+      cmp_mask        = _mm256_movemask_ps (cmp);
+
+      if (!cmp_mask)
+      {
+        return 0;
+      }
+
+      auto xy       = _mm256_mul_ps (x, y);
+      y             = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy);
+      x             = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
+    }
+
+    return 0;
+  }
+```
+
+We also switched to single-precision floats which means that
+
+## Appendix
+
+### FSharp code disassembled
+
+```asm
+; rem <= 0?
+00007FFAE53F1BA6  test        esi,esi
+;  if so then bail out
+00007FFAE53F1BA8  jle         00007FFAE53F1BCE
+; x2 = x*x
+00007FFAE53F1BAA  movaps      xmm0,xmm6
+00007FFAE53F1BAD  mulsd       xmm0,xmm6
+; y2 = y*y
+00007FFAE53F1BB1  movaps      xmm1,xmm7
+00007FFAE53F1BB4  mulsd       xmm1,xmm7
+; r2 = x2 + y2
+00007FFAE53F1BB8  addsd       xmm0,xmm1
+; r2 > 4.?
+00007FFAE53F1BBC  ucomisd     xmm0,mmword ptr [7FFAE53F1C20h]
+00007FFAE53F1BC4  seta        al
+00007FFAE53F1BC7  movzx       eax,al
+00007FFAE53F1BCA  test        eax,eax
+; if no > 4. then continue
+00007FFAE53F1BCC  je          00007FFAE53F1BEC
+; We are done
+00007FFAE53F1BCE  ...
+; x2 = x*x
+00007FFAE53F1BEC  movaps      xmm0,xmm6
+00007FFAE53F1BEF  mulsd       xmm0,xmm6
+; y2 = y*y
+00007FFAE53F1BF3  movaps      xmm1,xmm7
+00007FFAE53F1BF6  mulsd       xmm1,xmm7
+; x = x2 - y2 + cx
+00007FFAE53F1BFA  subsd       xmm0,xmm1
+00007FFAE53F1BFE  addsd       xmm0,xmm8
+; y = 2*x*y + cy
+00007FFAE53F1C03  mulsd       xmm6,mmword ptr [7FFAE53F1C28h]
+00007FFAE53F1C0B  mulsd       xmm6,xmm7
+00007FFAE53F1C0F  movaps      xmm7,xmm6
+00007FFAE53F1C12  addsd       xmm7,xmm9
+00007FFAE53F1C17  movaps      xmm6,xmm0
+; rem - 1
+00007FFAE53F1C1A  dec         esi
+00007FFAE53F1C1C  jmp         00007FFAE53F1BA1
+```
