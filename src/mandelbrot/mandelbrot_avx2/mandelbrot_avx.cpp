@@ -47,8 +47,8 @@ namespace
 
 #define MANDEL_CMPMASK()  \
         cmp_mask      =   \
-            (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[0], y2[0]), _mm256_set1_pd (4.0F), _CMP_LT_OQ)) << 4) \
-          |  _mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[1], y2[1]), _mm256_set1_pd (4.0F), _CMP_LT_OQ))
+            (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[0], y2[0]), _mm256_set1_pd (4.0), _CMP_LT_OQ)) << 4) \
+          |  _mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[1], y2[1]), _mm256_set1_pd (4.0), _CMP_LT_OQ))
 
   MANDEL_INLINE std::uint8_t mandelbrot_avx (__m256d cx1, __m256d cy1, __m256d cx2, __m256d cy2)
   {
