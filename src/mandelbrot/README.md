@@ -6,7 +6,16 @@ The mandelbrot set is computed by determining if repeated applications of `Z' = 
 
 `Z` is a complex number which can be thought of a 2D coordinate. Each pixel in an image is mapped to complex number `Z` and for each pixel we do the infinity test.
 
-A simple F# program to generate the mandelbrot set as Black&White PBM image could look like this:
+In F# the mandelbrot infinity test could look like this:
+
+```fsharp
+let rec mandelbrot rem x y cx cy =
+  // If the length of (x,y) is greater than 2 the series will tend to infinity
+  if rem <= 0 || (x*x + y*y > 4.) then rem
+  else mandelbrot (rem - 1) (x*x - y*y + cx)  (2.*x*y + cy) cx cy
+```
+
+A complete F# program to generate the mandelbrot set as Black&White PBM image could look like this:
 
 ```fsharp
 let clock =
@@ -110,9 +119,9 @@ Another, approach is to use the GPU but that is a topic for a another post.
 
 .NET has limited support for SSE and no support for AVX which means I will use C++.
 
-## Applying AVX
+## Generating the mandelbrot set using AVX
 
-I had written AVX accelerated mandelbrot set generator previously:
+I have written an AVX accelerated mandelbrot set generator previously:
 
 ```C++
   inline __m256d mandelbrot_avx (__m256d x, __m256d y, __m256d cx, __m256d cy, std::size_t max_iter)
@@ -121,13 +130,11 @@ I had written AVX accelerated mandelbrot set generator previously:
 
     for (std::size_t iter = max_iter; iter > 0; --iter)
     {
-      // Basically x*x but does so for 4 doubles in parallel
-      auto x2         = _mm256_mul_pd  (x, x);
-      auto y2         = _mm256_mul_pd  (y, y);
-      auto r2         = _mm256_add_pd  (x2, y2);
-      auto _4         = _mm256_set1_pd (4.0);
-      // Compares 4 doubles against 4.0 to check for infinity
-      auto cmp        = _mm256_cmp_pd  (r2, _4, _CMP_LT_OQ);
+      auto x2         = _mm256_mul_pd  (x, x);                // x*x      (4 doubles)
+      auto y2         = _mm256_mul_pd  (y, y);                // y*y      (4 doubles)
+      auto r2         = _mm256_add_pd  (x2, y2);              // x2 + y2  (4 doubles)
+      auto _4         = _mm256_set1_pd (4.0);                 // 4.0      (4 doubles)
+      auto cmp        = _mm256_cmp_pd  (r2, _4, _CMP_LT_OQ);  // r2 < 4   (4 doubles)
 
       // Using the parallel comparison we generate a comparison mask
       //  where the 4 lower bits holds the result of the comparison
@@ -139,18 +146,15 @@ I had written AVX accelerated mandelbrot set generator previously:
         return acc;
       }
 
-      // acc contains 4 counters, we need to increment them
-      //  depending on the cmp result. If the comparison is greater than 4. we shouldn't
-      //  increment the corresponding float, if it less we should increase it.
-      auto _1         = _mm256_set1_pd (1.0);
-      auto _0         = _mm256_set1_pd (0.0);
-      auto inc        = _mm256_blendv_pd (_0, _1, cmp);
-      acc           = _mm256_add_pd (acc, inc);
+      auto _1         = _mm256_set1_pd (1.0);           // 1.0      (4 doubles)
+      auto _0         = _mm256_set1_pd (0.0);           // 0.0      (4 doubles)
+      auto inc        = _mm256_blendv_pd (_0, _1, cmp); // blends _1 and _0 depending on the comparison result
+      acc             = _mm256_add_pd (acc, inc);       // ++acc    (4 doubles)
 
       // Compute new x & y values
-      auto xy       = _mm256_mul_pd (x, y);
-      y             = _mm256_add_pd (_mm256_add_pd (xy, xy) , cy);
-      x             = _mm256_add_pd (_mm256_sub_pd (x2, y2) , cx);
+      auto xy       = _mm256_mul_pd (x, y);                         // x*y      (4 doubles)
+      y             = _mm256_add_pd (_mm256_add_pd (xy, xy) , cy);  // xy + xy  (4 doubles)
+      x             = _mm256_add_pd (_mm256_sub_pd (x2, y2) , cx);  // x2 - y2  (4 doubles)
     }
 
     return acc;
@@ -191,9 +195,18 @@ However, for the purpose of this exercise this is unnecessary as we will generat
 
 We also switched to single-precision floats.
 
-So by processing 8 pixels at the time rather than 2 pixels at the time we would expect this to perform roughly 4x faster than `mandelbrot_6`.
+So by processing 8 pixels at the time rather than 2 pixels at the time we would expect this to perform roughly 4x faster than `mandelbrot_6`. In order utilize multiple cores I use OpenMP which is supported by Visual Studio, GCC and CLANG.
 
+## Results
 
+| Algorithm         | Time  | Speedup |
+| ----------------- | ----- | ------- |
+| mandelbrot_6      | 1.3s  | 1x      |
+| F# (reference)    | 28s   | -17x    |
+| C++ (reference)   | 24s   | ?x      |
+| C++ (AVX)         | _     | ?x      |
+| C++ (unroll)      | _     | ?x      |
+| C++ (multiple)    | _     | ?x      |
 
 ## Appendix
 
