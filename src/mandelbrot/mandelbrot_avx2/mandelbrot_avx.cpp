@@ -11,6 +11,12 @@
 #include <emmintrin.h>
 #include <immintrin.h>
 
+#ifdef _MSVC_LANG
+# define MANDEL_INLINE __forceinline
+#else
+# define MANDEL_INLINE inline
+#endif
+
 namespace
 {
   constexpr auto    min_x    = -1.5;
@@ -28,19 +34,21 @@ namespace
     return std::make_tuple (diff, std::move (result));
   }
 
-#define MANDEL_ITERATION(i)                                           \
+#define MANDEL_SUB_ITERATION(i)                                       \
         xy[i] = _mm256_mul_pd (x[i], y[i]);                           \
         x2[i] = _mm256_mul_pd (x[i], x[i]);                           \
         y2[i] = _mm256_mul_pd (y[i], y[i]);                           \
         y[i]  = _mm256_add_pd (_mm256_add_pd (xy[i], xy[i]) , cy[i]); \
         x[i]  = _mm256_add_pd (_mm256_sub_pd (x2[i], y2[i]) , cx[i])
 
+#define MANDEL_ITERATION() MANDEL_SUB_ITERATION(0); MANDEL_SUB_ITERATION(1)
+
 #define MANDEL_CMPMASK()  \
         cmp_mask      =   \
             (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[0], y2[0]), _mm256_set1_pd (4.0F), _CMP_LT_OQ)) << 4) \
           |  _mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[1], y2[1]), _mm256_set1_pd (4.0F), _CMP_LT_OQ))
 
-  __forceinline std::uint8_t mandelbrot_avx (__m256d cx1, __m256d cy1, __m256d cx2, __m256d cy2)
+  MANDEL_INLINE std::uint8_t mandelbrot_avx (__m256d cx1, __m256d cy1, __m256d cx2, __m256d cy2)
   {
     auto cmp_mask = 0 ;
 
@@ -57,29 +65,14 @@ namespace
     do
     {
       // 8 inner steps
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
-
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
-
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
-
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
-
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
-
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
-
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
-
-      MANDEL_ITERATION(0);
-      MANDEL_ITERATION(1);
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
 
       MANDEL_CMPMASK();
 
@@ -93,11 +86,8 @@ namespace
     } while (iter && cmp_mask);
 
     // Last 2 steps
-    MANDEL_ITERATION(0);
-    MANDEL_ITERATION(1);
-
-    MANDEL_ITERATION(0);
-    MANDEL_ITERATION(1);
+    MANDEL_ITERATION();
+    MANDEL_ITERATION();
 
     MANDEL_CMPMASK();
 
