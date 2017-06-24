@@ -4,7 +4,9 @@ Recently I discovered [The Computer Language Benchmarks Game](http://benchmar
 
 The mandelbrot set is computed by determining if repeated applications of `Z' = Z^2 + C` tends towards infinity or not.
 
-`Z` is a complex number which can be thought of a 2D coordinate. Each pixel in an image is mapped to complex number `Z` and for each pixel we do the infinity test.
+`Z` is a complex number which can be thought of a 2D coordinate. In order to visualize the mandelbrot set each pixel in an image can be mapped to complex number `Z` and for each pixel we do the infinity test. If the series tend to infinity we color the pixel white, black otherwise.
+
+It's a problem that lends itself very well to parallelize as each pixel is independent of the others.
 
 In F# the mandelbrot infinity test could look like this:
 
@@ -15,7 +17,7 @@ let rec mandelbrot rem x y cx cy =
   else mandelbrot (rem - 1) (x*x - y*y + cx)  (2.*x*y + cy) cx cy
 ```
 
-A complete F# program to generate the mandelbrot set as Black&White PBM image could look like this:
+A complete F# program to generate the mandelbrot set as a black & white PBM image could look like this:
 
 ```fsharp
 let clock =
@@ -160,9 +162,9 @@ The F# program generates the same set in 28 sec on my machine, roughly 25x times
 
 ## Can the best algorithm be beaten?
 
-I analyzed the `mandelbrot_6` program to understand if it can be improved upon.
+The best algorithm on the site is `mandelbrot_6`. I analyzed the `mandelbrot_6` program to understand if it can be improved upon.
 
-`mandelbrot_6` is written in C and uses all cores available through OpenMP to get a roughly 4x speedup on quad core machines such as mine. In addition the program uses SSE3 in order to compute two pixels in parallel.
+`mandelbrot_6` is written in C and uses all cores available through OpenMP to get a roughly 4x speedup on quad core machines. In addition the program uses SSE3 in order to compute two pixels in parallel. SSE3 is an example of SIMD (single instruction, multiple data).
 
 If we used AVX over SSE3 it would give us twice the computation power. In addition, for the coordinates chosen we don't need double precision floats, if we used single precision floats we could process eight pixels in parallel.
 
@@ -382,7 +384,7 @@ When checking the code for `mandelbrot_6` I noted that they write the code in su
         auto cmp        = _mm256_cmp_ps  (r2, _mm256_set1_ps (4.0), _CMP_LT_OQ);  \
         cmp_mask        = _mm256_movemask_ps (cmp);
 
-  inline int mandelbrot_avx_slow (__m256 cx, __m256 cy, std::size_t max_iter)
+  inline int mandelbrot_avx (__m256 cx, __m256 cy, std::size_t max_iter)
   {
     auto x = cx;
     auto y = cy;
@@ -478,7 +480,7 @@ This looks good, but why aren't we seeing 4x time speedup?
 
 # Understanding latency & throughput of assembly instructions
 
-When I checked the timings for the assembly instructions (opcodes) we are using we see there are two numbers listed for each (From [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/)):
+When checking the timings for the assembly instructions (opcodes) we can see that there are two numbers listed for each (From [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/)):
 
 | opcode            | Latency  | Throughput |
 | ----------------- | -------- | ---------- |
@@ -488,11 +490,11 @@ When I checked the timings for the assembly instructions (opcodes) we are using 
 | vcmpps            | 3        | 1          |
 | vmovmskps         | 1        | 1          |
 
-I have an Intel I5 3570K which happens is the Ivy Bridge architecture. The numbers are taken for that architecture.
+I have an Intel Core-I5 3570K which happens is the Ivy Bridge architecture. The numbers are taken for that architecture.
 
-Latency is how many clock cycles it takes for a result to be ready to be used. Throughput is how many clock cycles the CPU needs to compute result. Throughput on more modern Intel architectures is 0.5 for many of the instructions above meaning the CPU can do run two instructions i parallel.
+Latency is how many clock cycles it takes for a result to be ready to be used. Throughput is how many clock cycles the CPU needs to compute result. Throughput on more modern Intel architectures is 0.5 for many of the instructions above meaning the CPU can do run two instructions in parallel.
 
-The issue with my code above is that because the calculations are dependent on the previous result the CPU needs to stall because of the latency. If we ran more independent calculations in parallel we should be better able to use the throughput of the CPU by avoiding stalls.
+The issue with the code above is that because the calculations are dependent on the previous result the CPU needs to stall because of the latency. If we ran more independent calculations in parallel we should be better able to use the throughput of the CPU by avoiding stalls.
 
 This technique is also used by `mandelbrot_6` for the same reasons.
 
@@ -593,17 +595,27 @@ We finally landed where we wanted, by using floats and AVX we sped up `mandelbro
 
 ## Final thoughts
 
-When doing this exercise, I was reminded that parallelism is so much more than just executing on multiple cores. It's also about using the SIMD (single instruction, multiple data) aka SSE/AVX capability of todays CPUs.
+### Parallelism is more than cores
 
-More subtle is that my mental model of how CPUs execute code is horribly outdated. I basically still thinks in terms of MC68000 assembly code but today's CPUs reorder the code on the fly (in order to work around latency in instructions and memory). We have three layers of cache because RAM is just awfully slow compared to the CPU making writing concurrent code even harder. In addition, each instruction perhaps should be seen more as an async Task in that the throughput is high but we have long poor latency.
+When doing this exercise, I was reminded that parallelism is so much more than just executing on multiple cores. It's also about using the SIMD aka SSE/AVX capability of todays CPUs as well as the ability to execute multiple instructions per clock cycle.
+
+### Modern CPUs are nothing like CPUs of old
+
+More subtle is that my mental model of how CPUs execute code is horribly outdated. I basically still thinks in terms of MC68000 assembly code but today's CPUs reorder the code on the fly (in order to work around latency in instructions and memory). We have three layers of cache because RAM is just awfully slow compared to the CPU making writing concurrent code even harder. In addition, each instruction could be seen as an async Task in that the throughput is high but we have long poor latency.
+
+### Is hoping for better compilers a pipe dream?
 
 Compilers definitely can do better but I guess it's probably quite hard to model CPU instructions to include all properties above and then optimize for performance in a reasonable time. For Java and .NET the jitter has much more limited memory and time budget meaning it's unlikely to perform as good as a modern C/C++ compiler.
 
-It gets even more complicated as one the optimizations applied by `mandelbrot_6` relies on one of the properties of the mandelbrot set (that is we only need to do the infinity check every 8th iteration). For a compiler to apply this optimization it would have to identify the algorithm as a mandelbrot set generator and using the mathematical properties of the mandelbrot set apply this optimization.
+It gets even more complicated as one of the optimizations applied by `mandelbrot_6` relies on the mathematical properties of the mandelbrot set (that is we only need to do the infinity check every 8th iteration). For a compiler to apply this optimization it would have to identify the algorithm as a mandelbrot set generator and using the mathematical properties of the mandelbrot set apply this optimization.
 
-I am also reminded that when trying to write performant code that you have other examples to look at. It is very easy to trick yourself into thinking that you probably wrote the fast code there is. Other examples can help you show new techniques that when you apply it improves performance a lot. I thought my original AVX was pretty optimal but now I know that unrolling loops and computing several groups of pixels at the same time gives significant performance boosts.
+### Learn from the others
 
-It's also interesting to see that performance difference between a reasonable efficiently trivial implementation is 75x slower than the fastest implementation that I could come up with. That's a quite large difference. There's much power in the CPU that is often woefully underused.
+When trying to write performant code it helps a lot to have other examples to look at. It is very easy to trick yourself into thinking that you probably wrote the fasestt code there is. Other examples can help you show new techniques that you didn't consider. I thought my original AVX was pretty optimal but now I know that unrolling loops and computing several groups of pixels at the same time gives a significant performance boost.
+
+### So much unused power!
+
+It's also interesting to see that performance difference between a reasonable efficiently trivial implementation is 75x slower than the fastest implementation that I could come up with. That's a quite large difference. There's much power in the CPU that often is woefully underused.
 
 All in all, a quite interesting experience for me that I like to share in the hope that someone will come up with an even faster version.
 
