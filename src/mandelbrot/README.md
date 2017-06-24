@@ -1,5 +1,7 @@
 # The Computer Language Benchmarks Game - Mandelbrot
 
+**Source code: https://github.com/mrange/benchmarksgame/tree/master/src/mandelbrot**
+
 Recently I discovered [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/) which intrigued me, especially the [mandelbrot version](http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html).
 
 The mandelbrot set is computed by determining if repeated applications of `Z' = Z^2 + C` tends towards infinity or not.
