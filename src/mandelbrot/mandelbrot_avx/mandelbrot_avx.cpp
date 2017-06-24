@@ -59,65 +59,6 @@ namespace
           | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[2], y2[2]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 16) \
           | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[3], y2[3]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 24)
 
-#define MANDEL_INNER()                                    \
-        x2 = _mm256_mul_ps  (x, x);                       \
-        y2 = _mm256_mul_ps  (y, y);                       \
-        r2 = _mm256_add_ps  (x2, y2);                     \
-        xy = _mm256_mul_ps  (x, y);                       \
-        y  = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy); \
-        x  = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
-
-#define MANDEL_CHECK()                                    \
-        auto cmp        = _mm256_cmp_ps  (r2, _mm256_set1_ps (4.0), _CMP_LT_OQ);  \
-        cmp_mask        = _mm256_movemask_ps (cmp);
-
-  inline int mandelbrot_avx_slow (__m256 cx, __m256 cy, std::size_t max_iter)
-  {
-    auto x = cx;
-    auto y = cy;
-
-    int cmp_mask = 0;
-
-    __m256 x2, y2, xy, r2;
-
-    for (auto outer = 6; outer > 0; --outer)
-    {
-      MANDEL_INNER()
-      MANDEL_INNER()
-      MANDEL_INNER()
-      MANDEL_INNER()
-      MANDEL_INNER()
-      MANDEL_INNER()
-      MANDEL_INNER()
-      MANDEL_INNER()
-
-      MANDEL_CHECK ();
-
-      if (!cmp_mask)
-      {
-        return 0;
-      }
-
-    }
-
-    MANDEL_INNER()
-    MANDEL_INNER()
-
-    MANDEL_CHECK ();
-
-    return cmp_mask;
-  }
-
-  int mandelbrot_avx (__m256 cx[4], __m256 cy[4])
-  {
-    auto b0 = mandelbrot_avx_slow(cx[0], cy[0], 50);
-    auto b1 = mandelbrot_avx_slow(cx[1], cy[1], 50);
-    auto b2 = mandelbrot_avx_slow(cx[2], cy[2], 50);
-    auto b3 = mandelbrot_avx_slow(cx[3], cy[3], 50);
-    return b0 | (b1 << 8) | (b2 << 16)  | (b2 << 24);
-  }
-
-/*
   MANDEL_INLINE int mandelbrot_avx (__m256 cx[4], __m256 cy[4])
   {
 
@@ -130,7 +71,7 @@ namespace
     std::uint32_t cmp_mask;
 
     // 6 * 8 + 2 => 50 iterations
-    auto iter = 6;  // TODO: Should be 7 instead?
+    auto iter = 6;
     do
     {
       // 8 inner steps
@@ -162,7 +103,6 @@ namespace
 
     return cmp_mask;
   }
-*/
 
   std::vector<std::uint8_t> compute_set (std::size_t const dim)
   {
@@ -176,7 +116,7 @@ namespace
 
     auto sdim   = static_cast<int> (dim);
 
-//    #pragma omp parallel for schedule(guided)
+    #pragma omp parallel for schedule(guided)
     for (auto sy = 0; sy < sdim; sy += 4)
     {
       auto y      = static_cast<std::size_t> (sy);
