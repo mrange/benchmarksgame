@@ -124,8 +124,11 @@ Another, approach is to use the GPU but that is a topic for a another post.
 I have written an AVX accelerated mandelbrot set generator previously:
 
 ```C++
-  inline __m256d mandelbrot_avx (__m256d x, __m256d y, __m256d cx, __m256d cy, std::size_t max_iter)
+  inline __m256d mandelbrot_avx (__m256d cx, __m256d cy, std::size_t max_iter)
   {
+    auto x = cx;
+    auto y = cy;
+
     auto acc = _mm256_set1_pd (0.0);
 
     for (std::size_t iter = max_iter; iter > 0; --iter)
@@ -166,8 +169,11 @@ This keeps track of how many iterations it took before it was determined that th
 However, for the purpose of this exercise this is unnecessary as we will generate a black & white set, so it can be rewritten into this:
 
 ```C++
-  inline int mandelbrot_avx (__m256 x, __m256 y, __m256 cx, __m256 cy, std::size_t max_iter)
+  inline int mandelbrot_avx (__m256 cx, __m256 cy, std::size_t max_iter)
   {
+    auto x = cx;
+    auto y = cy;
+
     int cmp_mask = 0;
 
     for (std::size_t iter = max_iter; iter > 0; --iter)
@@ -189,13 +195,56 @@ However, for the purpose of this exercise this is unnecessary as we will generat
       x             = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
     }
 
-    return 0;
+    return cmp_mask;
   }
 ```
 
 We also switched to single-precision floats.
 
 So by processing 8 pixels at the time rather than 2 pixels at the time we would expect this to perform roughly 4x faster than `mandelbrot_6`. In order utilize multiple cores I use OpenMP which is supported by Visual Studio, GCC and CLANG.
+
+So we are using floats and AVX so we expect the speedup to be around 4x compared to `mandelbrot_6` but when running the tests we only get around 40% performance improvement. Disappointing.
+
+Let's check the generated assembly code to see if anything interesting can be seen.
+
+```asm
+; auto x2         = _mm256_mul_ps  (x, x);
+00007FF764B21050  vmulps      ymm5,ymm3,ymm3
+; auto y2         = _mm256_mul_ps  (y, y);
+00007FF764B21054  vmulps      ymm1,ymm4,ymm4
+; auto r2         = _mm256_add_ps  (x2, y2);
+00007FF764B21058  vaddps      ymm0,ymm1,ymm5
+; auto cmp        = _mm256_cmp_ps  (r2, _4, _CMP_LT_OQ);
+00007FF764B2105C  vcmplt_oqps ymm2,ymm0,ymm7
+; cmp_mask        = _mm256_movemask_ps (cmp);
+00007FF764B21061  vmovmskps   eax,ymm2
+; if (!cmp_mask)
+; {
+;   return 0;
+; }
+00007FF764B21065  test        eax,eax
+00007FF764B21067  je          `anonymous namespace'::mandelbrot_avx+85h (07FF764B21085h)
+; auto xy       = _mm256_mul_ps (x, y);
+00007FF764B21069  vmulps      ymm0,ymm4,ymm3
+; y             = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy);
+; x             = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
+00007FF764B2106D  vaddps      ymm2,ymm0,ymm0
+00007FF764B21071  vsubps      ymm0,ymm5,ymm1
+00007FF764B21075  vaddps      ymm3,ymm0,ymm11
+00007FF764B2107A  vaddps      ymm4,ymm2,ymm10
+; for (std::size_t iter = max_iter; iter > 0; --iter)
+00007FF764B2107F  sub         rdx,1
+00007FF764B21083  jne         `anonymous namespace'::mandelbrot_avx+50h (07FF764B21050h)
+```
+
+The code basically maps directly to the C++ code and we don't see unexpected overhead. However, the compiler hasn't unrolled the loop for us.
+
+## Unrolling loops for performance
+
+When checking the code for `mandelbrot_6` I noted that they write the code in such a way to allow it to unroll the inner loop 8 times. In addition, they only do the infinity check after the 8 iterations. This mean we might do a bit of unnecessary work but the inner loop will be tighter and we reduce the overhead of the end of loop check.
+
+
+
 
 ## Results
 
@@ -204,7 +253,7 @@ So by processing 8 pixels at the time rather than 2 pixels at the time we would 
 | mandelbrot_6      | 1.13s | 1x      |
 | F# (reference)    | 28s   | -24x    |
 | C++ (reference)   | 22s   | -20x    |
-| C++ (AVX)         | _     | ?x      |
+| C++ (AVX)         | 790ms | 1.4     |
 | C++ (unroll)      | _     | ?x      |
 | C++ (multiple)    | 290ms | 3.9x    |
 

@@ -59,6 +59,45 @@ namespace
           | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[2], y2[2]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 16) \
           | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[3], y2[3]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 24)
 
+  inline int mandelbrot_avx_slow (__m256 cx, __m256 cy, std::size_t max_iter)
+  {
+    auto x = cx;
+    auto y = cy;
+
+    int cmp_mask = 0;
+
+    for (std::size_t iter = max_iter; iter > 0; --iter)
+    {
+      auto x2         = _mm256_mul_ps  (x, x);
+      auto y2         = _mm256_mul_ps  (y, y);
+      auto r2         = _mm256_add_ps  (x2, y2);
+      auto _4         = _mm256_set1_ps (4.0);
+      auto cmp        = _mm256_cmp_ps  (r2, _4, _CMP_LT_OQ);
+      cmp_mask        = _mm256_movemask_ps (cmp);
+
+      if (!cmp_mask)
+      {
+        return 0;
+      }
+
+      auto xy       = _mm256_mul_ps (x, y);
+      y             = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy);
+      x             = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
+    }
+
+    return cmp_mask;
+  }
+
+  int mandelbrot_avx (__m256 cx[4], __m256 cy[4])
+  {
+    auto b0 = mandelbrot_avx_slow(cx[0], cy[0], 50);
+    auto b1 = mandelbrot_avx_slow(cx[1], cy[1], 50);
+    auto b2 = mandelbrot_avx_slow(cx[2], cy[2], 50);
+    auto b3 = mandelbrot_avx_slow(cx[3], cy[3], 50);
+    return b0 | (b1 << 8) | (b2 << 16)  | (b2 << 24);
+  }
+
+/*
   MANDEL_INLINE int mandelbrot_avx (__m256 cx[4], __m256 cy[4])
   {
 
@@ -103,6 +142,7 @@ namespace
 
     return cmp_mask;
   }
+*/
 
   std::vector<std::uint8_t> compute_set (std::size_t const dim)
   {
