@@ -150,12 +150,12 @@ The results of the program can be viewed using: http://paulcuth.me.uk/netpbm-vie
 
 At the benchmark site the [`mandelbrot_6`](http://benchmarksgame.alioth.debian.org/u64q/program.php?test=mandelbrot&lang=gcc&id=6) generates a 16,000x16,000 mandelbrot set in 1.13 sec.
 
-The F# program generates the same set in 28 sec on my machine, roughly 28x times slower as seen in the table below.
+The F# program generates the same set in 28 sec on my machine, roughly 25x times slower as seen in the table below.
 
 | Algorithm         | Time  | Speedup |
 | ----------------- | ----- | ------- |
 | mandelbrot_6      | 1.13s | 1x      |
-| F# (reference)    | 28s   | -28x    |
+| F# (reference)    | 28s   | -25x    |
 
 
 ## Can the best algorithm be beaten?
@@ -234,7 +234,7 @@ The code looks slightly better than the F# code and the results are slightly bet
 | Algorithm         | Time  | Speedup |
 | ----------------- | ----- | ------- |
 | mandelbrot_6      | 1.13s | 1x      |
-| F# (reference)    | 28s   | -24x    |
+| F# (reference)    | 28s   | -25x    |
 | C++ (reference)   | 22s   | -20x    |
 
 ## Generating the mandelbrot set using AVX
@@ -324,7 +324,7 @@ So by processing 8 pixels at the time rather than 2 pixels at the time we would 
 | Algorithm         | Time  | Speedup |
 | ----------------- | ----- | ------- |
 | mandelbrot_6      | 1.13s | 1x      |
-| F# (reference)    | 28s   | -24x    |
+| F# (reference)    | 28s   | -25x    |
 | C++ (reference)   | 22s   | -20x    |
 | C++ (AVX)         | 790ms | 1.4x    |
 
@@ -430,7 +430,7 @@ When running the performance test we see a substantial improvement when unrollin
 | Algorithm         | Time  | Speedup |
 | ----------------- | ----- | ------- |
 | mandelbrot_6      | 1.13s | 1x      |
-| F# (reference)    | 28s   | -24x    |
+| F# (reference)    | 28s   | -25x    |
 | C++ (reference)   | 22s   | -20x    |
 | C++ (AVX)         | 790ms | 1.4x    |
 | C++ (unroll)      | 520ms | 2.2x    |
@@ -504,7 +504,7 @@ This means that each iteration will compute 32 pixels.
 
 The code:
 
-```c+++
+```c++
 #define MANDEL_INDEPENDENT(i)                                         \
         xy[i] = _mm256_mul_ps (x[i], y[i]);                           \
         x2[i] = _mm256_mul_ps (x[i], x[i]);                           \
