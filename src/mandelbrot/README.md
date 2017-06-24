@@ -164,11 +164,11 @@ I analyzed the `mandelbrot_6` program to understand if it can be improved upon.
 
 `mandelbrot_6` is written in C and uses all cores available through OpenMP to get a roughly 4x speedup on quad core machines such as mine. In addition the program uses SSE3 in order to compute two pixels in parallel.
 
-If we used AVX over SSE3 it would gives us twice the computation power. In addition, for the coordinates choses we don't need really need double precision floats, if we used single precision floats we could process eight pixels in parallel.
+If we used AVX over SSE3 it would give us twice the computation power. In addition, for the coordinates chosen we don't need double precision floats, if we used single precision floats we could process eight pixels in parallel.
 
 This makes me believe that `mandelbrot_6` could be made 4x times faster by using AVX (2x) and single precision floats (2x).
 
-Another, approach is to use the GPU but that is a topic for a another post.
+Another, approach is to use the GPU but that is a topic for another post.
 
 .NET has limited support for SSE and no support for AVX which means I will use C++.
 
@@ -328,7 +328,7 @@ So by processing 8 pixels at the time rather than 2 pixels at the time we would 
 | C++ (reference)   | 22s   | -20x    |
 | C++ (AVX)         | 790ms | 1.4x    |
 
-So we are using floats and AVX so we expect the speedup to be around 4x compared to `mandelbrot_6` but when running the tests we only get around 40% performance improvement. Disappointing.
+We are using floats and AVX so we expect the speedup to be around 4x compared to `mandelbrot_6` but when running the tests we only get around 40% performance improvement. Disappointing.
 
 Let's check the generated assembly code to see if anything interesting can be seen.
 
@@ -593,17 +593,17 @@ We finally landed where we wanted, by using floats and AVX we sped up `mandelbro
 
 ## Final thoughts
 
-When doing this exercise I was reminded that parallelism is so much more than just executing on multiple cores. It's also about using the SIMD (single instruction, multiple data) aka SSE/AVX capability of todays CPU:s.
+When doing this exercise, I was reminded that parallelism is so much more than just executing on multiple cores. It's also about using the SIMD (single instruction, multiple data) aka SSE/AVX capability of todays CPUs.
 
-More subtle is that my mental model of how CPU:s execute code is horribly out-dated. I basically still thinks in terms of MC68000 assembly code but todays CPU:s reorder the code on the fly (in order to work around latency in instructions and memory). We have three layers of cache because RAM is just awfully slow compared to the CPU making writing concurrent code even harder. In addition, each instruction perhaps should be seen more as an async Task in that the throughput is high but we have long poor latency.
+More subtle is that my mental model of how CPUs execute code is horribly outdated. I basically still thinks in terms of MC68000 assembly code but today's CPUs reorder the code on the fly (in order to work around latency in instructions and memory). We have three layers of cache because RAM is just awfully slow compared to the CPU making writing concurrent code even harder. In addition, each instruction perhaps should be seen more as an async Task in that the throughput is high but we have long poor latency.
 
-Compilers definitly can do better but I guess it's probably quite hard to model CPU instructions and then optimize for performance. For Java and .NET the jitter has much more limited memory and time budget meaning it's unlikely to perform as good as a modern C/C++ compiler.
+Compilers definitely can do better but I guess it's probably quite hard to model CPU instructions to include all properties above and then optimize for performance in a reasonable time. For Java and .NET the jitter has much more limited memory and time budget meaning it's unlikely to perform as good as a modern C/C++ compiler.
 
 It gets even more complicated as one the optimizations applied by `mandelbrot_6` relies on one of the properties of the mandelbrot set (that is we only need to do the infinity check every 8th iteration). For a compiler to apply this optimization it would have to identify the algorithm as a mandelbrot set generator and using the mathematical properties of the mandelbrot set apply this optimization.
 
-I am also reminded that when trying to write performant code that you have other examples to look at. It is very easy to trick yourself into thinking that you probably wrote the fast code there is. Other examples can help you show new techniques that when you apply it improves performance alot. I thought my original AVX was pretty optimal but now I know that unrolling loops and computing several groups of pixel at the same time gives significant performance boosts.
+I am also reminded that when trying to write performant code that you have other examples to look at. It is very easy to trick yourself into thinking that you probably wrote the fast code there is. Other examples can help you show new techniques that when you apply it improves performance a lot. I thought my original AVX was pretty optimal but now I know that unrolling loops and computing several groups of pixels at the same time gives significant performance boosts.
 
-It's also interesting to see that performance difference between a reasonable efficiently trivial implementation is 80x slower than the fastest implementation that I could come up with. That's a quite large difference. There's much power in the CPU that is often woefully underused.
+It's also interesting to see that performance difference between a reasonable efficiently trivial implementation is 75x slower than the fastest implementation that I could come up with. That's a quite large difference. There's much power in the CPU that is often woefully underused.
 
-All in all a quite interesting experience for me that I like to share in the hope that someone will come up with an even faster version.
+All in all, a quite interesting experience for me that I like to share in the hope that someone will come up with an even faster version.
 
