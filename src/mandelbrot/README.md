@@ -99,11 +99,64 @@ let main argv =
   0
 ```
 
+For fun let's look at the generated assembly code:
+
+```asm
+```asm
+; rem <= 0?
+00007FFAE53F1BA6  test        esi,esi
+;  if so then bail out
+00007FFAE53F1BA8  jle         00007FFAE53F1BCE
+; x2 = x*x
+00007FFAE53F1BAA  movaps      xmm0,xmm6
+00007FFAE53F1BAD  mulsd       xmm0,xmm6
+; y2 = y*y
+00007FFAE53F1BB1  movaps      xmm1,xmm7
+00007FFAE53F1BB4  mulsd       xmm1,xmm7
+; r2 = x2 + y2
+00007FFAE53F1BB8  addsd       xmm0,xmm1
+; r2 > 4.?
+00007FFAE53F1BBC  ucomisd     xmm0,mmword ptr [7FFAE53F1C20h]
+00007FFAE53F1BC4  seta        al
+00007FFAE53F1BC7  movzx       eax,al
+00007FFAE53F1BCA  test        eax,eax
+; if no > 4. then continue
+00007FFAE53F1BCC  je          00007FFAE53F1BEC
+; We are done
+00007FFAE53F1BCE  ...
+; x2 = x*x
+00007FFAE53F1BEC  movaps      xmm0,xmm6
+00007FFAE53F1BEF  mulsd       xmm0,xmm6
+; y2 = y*y
+00007FFAE53F1BF3  movaps      xmm1,xmm7
+00007FFAE53F1BF6  mulsd       xmm1,xmm7
+; x = x2 - y2 + cx
+00007FFAE53F1BFA  subsd       xmm0,xmm1
+00007FFAE53F1BFE  addsd       xmm0,xmm8
+; y = 2*x*y + cy
+00007FFAE53F1C03  mulsd       xmm6,mmword ptr [7FFAE53F1C28h]
+00007FFAE53F1C0B  mulsd       xmm6,xmm7
+00007FFAE53F1C0F  movaps      xmm7,xmm6
+00007FFAE53F1C12  addsd       xmm7,xmm9
+00007FFAE53F1C17  movaps      xmm6,xmm0
+; rem - 1
+00007FFAE53F1C1A  dec         esi
+00007FFAE53F1C1C  jmp         00007FFAE53F1BA1
+```
+
+It's not too bad but one see that `x*x` and `y*y` is computed twice and the exit condition could be done better.
+
 The results of the program can be viewed using: http://paulcuth.me.uk/netpbm-viewer/
 
-At the benchmark site the [`mandelbrot_6`](http://benchmarksgame.alioth.debian.org/u64q/program.php?test=mandelbrot&lang=gcc&id=6) generates a 16,000x16,000 mandelbrot set in 1.65 sec.
+At the benchmark site the [`mandelbrot_6`](http://benchmarksgame.alioth.debian.org/u64q/program.php?test=mandelbrot&lang=gcc&id=6) generates a 16,000x16,000 mandelbrot set in 1.13 sec.
 
-The F# program generates the same set in 28 sec on my machine, roughly 17x times slower.
+The F# program generates the same set in 28 sec on my machine, roughly 28x times slower as seen in the table below.
+
+| Algorithm         | Time  | Speedup |
+| ----------------- | ----- | ------- |
+| mandelbrot_6      | 1.13s | 1x      |
+| F# (reference)    | 28s   | -28x    |
+
 
 ## Can the best algorithm be beaten?
 
@@ -118,6 +171,71 @@ This makes me believe that `mandelbrot_6` could be made 4x times faster by using
 Another, approach is to use the GPU but that is a topic for a another post.
 
 .NET has limited support for SSE and no support for AVX which means I will use C++.
+
+## Creating a reference mandelbrot set generator
+
+I think it's useful to always compare against a trivial implementation like the F# version above but as we are going to use C++ going forward we need one for C++ as well
+
+```c++
+  auto mandelbrot (double cx, double cy)
+  {
+    auto x    = cx      ;
+    auto y    = cy      ;
+    auto iter = max_iter;
+    for (; iter > 0; --iter)
+    {
+      auto x2 = x*x;
+      auto y2 = y*y;
+      if (x2 + y2 > 4)
+      {
+        return iter;
+      }
+      y = 2*x*y   + cy  ;
+      x = x2 - y2 + cx  ;
+    }
+
+    return iter;
+  }
+```
+
+The assembly code:
+
+```asm
+; auto x2 = x*x;
+00007FF70A371111  movaps      xmm2,xmm1
+00007FF70A371114  mulsd       xmm2,xmm1
+; auto y2 = y*y;
+00007FF70A371118  movaps      xmm3,xmm4
+00007FF70A37111B  mulsd       xmm3,xmm4
+; if (x2 + y2 > 4)
+; {
+;   return iter;
+; }
+00007FF70A37111F  movaps      xmm0,xmm3
+00007FF70A371122  addsd       xmm0,xmm2
+00007FF70A371126  comisd      xmm0,xmm7
+00007FF70A37112A  ja          `anonymous namespace'::compute_set+14Bh (07FF70A37114Bh)
+; y = 2*x*y   + cy  ;
+00007FF70A37112C  addsd       xmm1,xmm1
+00007FF70A371130  mulsd       xmm1,xmm4
+00007FF70A371134  movaps      xmm4,xmm1
+00007FF70A371137  addsd       xmm4,xmm6
+; x = x2 - y2 + cx  ;
+00007FF70A37113B  movaps      xmm1,xmm2
+00007FF70A37113E  subsd       xmm1,xmm3
+00007FF70A371142  addsd       xmm1,xmm5
+; for (; iter > 0; --iter)
+00007FF70A371146  add         eax,0FFFFFFFFh
+00007FF70A371149  jne         `anonymous namespace'::compute_set+111h (07FF70A371111h)
+```
+
+The code looks slightly better than the F# code and the results are slightly better too:
+
+| Algorithm         | Time  | Speedup |
+| ----------------- | ----- | ------- |
+| mandelbrot_6      | 1.13s | 1x      |
+| F# (reference)    | 28s   | -24x    |
+| C++ (reference)   | 22s   | -20x    |
 
 ## Generating the mandelbrot set using AVX
 
@@ -203,6 +321,13 @@ We also switched to single-precision floats.
 
 So by processing 8 pixels at the time rather than 2 pixels at the time we would expect this to perform roughly 4x faster than `mandelbrot_6`. In order utilize multiple cores I use OpenMP which is supported by Visual Studio, GCC and CLANG.
 
+| Algorithm         | Time  | Speedup |
+| ----------------- | ----- | ------- |
+| mandelbrot_6      | 1.13s | 1x      |
+| F# (reference)    | 28s   | -24x    |
+| C++ (reference)   | 22s   | -20x    |
+| C++ (AVX)         | 790ms | 1.4x    |
+
 So we are using floats and AVX so we expect the speedup to be around 4x compared to `mandelbrot_6` but when running the tests we only get around 40% performance improvement. Disappointing.
 
 Let's check the generated assembly code to see if anything interesting can be seen.
@@ -266,7 +391,7 @@ When checking the code for `mandelbrot_6` I noted that they write the code in su
 
     __m256 x2, y2, xy, r2;
 
-    //
+    // 6 outer loops
     for (auto outer = 6; outer > 0; --outer)
     {
       // 8 inner "loops"
@@ -279,7 +404,7 @@ When checking the code for `mandelbrot_6` I noted that they write the code in su
       MANDEL_INNER()
       MANDEL_INNER()
 
-      // Infinity check
+      // Infinity check only every 8th iteration
       MANDEL_CHECK ();
 
       if (!cmp_mask)
@@ -288,6 +413,8 @@ When checking the code for `mandelbrot_6` I noted that they write the code in su
       }
 
     }
+
+    // As 6*8 = 48 then 2 more inner "loops" before computing the final result
 
     MANDEL_INNER()
     MANDEL_INNER()
@@ -298,8 +425,7 @@ When checking the code for `mandelbrot_6` I noted that they write the code in su
   }
 ```
 
-
-## Results
+When running the performance test we see a substantial improvement when unrolling the loops:
 
 | Algorithm         | Time  | Speedup |
 | ----------------- | ----- | ------- |
@@ -307,73 +433,177 @@ When checking the code for `mandelbrot_6` I noted that they write the code in su
 | F# (reference)    | 28s   | -24x    |
 | C++ (reference)   | 22s   | -20x    |
 | C++ (AVX)         | 790ms | 1.4x    |
-| C++ (unroll)      | 600ms | 1.9x    |
-| C++ (multiple)    | 290ms | 3.9x    |
+| C++ (unroll)      | 520ms | 2.2x    |
 
-16000x16000(50)
-Loops: 26030813
-
-Clock Frequency: 3.4Ghz
-Cores: 4
-Architecture: Ivy Bridge
-
-| opcode            | Latency  | Throughput | #/iteration |  Latency'  | Throughput' |
-| ----------------- | -------- | ---------- | ----------- |  --------  | ----------  |
-| vmulps            | 5        | 1          | 96          |  480       | 96          |
-| vaddps            | 3        | 1          | 100         |  300       | 100         |
-| vsubps            | 3        | 1          | 32          |  96        | 32          |
-| vcmpps            | 3        | 1          | 4           |  12        | 4           |
-| vmovmskps         | 1        | 1          | 4           |  4         | 4           |
-
-
-Total latency/iteration: 892
-Total throughput/iteration: 236
-
-Efficiency: 45%
-
-
-## Appendix
-
-### FSharp code disassembled
+However, it's still not 4x faster. Let's check the assembly code:
 
 ```asm
-; rem <= 0?
-00007FFAE53F1BA6  test        esi,esi
-;  if so then bail out
-00007FFAE53F1BA8  jle         00007FFAE53F1BCE
-; x2 = x*x
-00007FFAE53F1BAA  movaps      xmm0,xmm6
-00007FFAE53F1BAD  mulsd       xmm0,xmm6
-; y2 = y*y
-00007FFAE53F1BB1  movaps      xmm1,xmm7
-00007FFAE53F1BB4  mulsd       xmm1,xmm7
-; r2 = x2 + y2
-00007FFAE53F1BB8  addsd       xmm0,xmm1
-; r2 > 4.?
-00007FFAE53F1BBC  ucomisd     xmm0,mmword ptr [7FFAE53F1C20h]
-00007FFAE53F1BC4  seta        al
-00007FFAE53F1BC7  movzx       eax,al
-00007FFAE53F1BCA  test        eax,eax
-; if no > 4. then continue
-00007FFAE53F1BCC  je          00007FFAE53F1BEC
-; We are done
-00007FFAE53F1BCE  ...
-; x2 = x*x
-00007FFAE53F1BEC  movaps      xmm0,xmm6
-00007FFAE53F1BEF  mulsd       xmm0,xmm6
-; y2 = y*y
-00007FFAE53F1BF3  movaps      xmm1,xmm7
-00007FFAE53F1BF6  mulsd       xmm1,xmm7
-; x = x2 - y2 + cx
-00007FFAE53F1BFA  subsd       xmm0,xmm1
-00007FFAE53F1BFE  addsd       xmm0,xmm8
-; y = 2*x*y + cy
-00007FFAE53F1C03  mulsd       xmm6,mmword ptr [7FFAE53F1C28h]
-00007FFAE53F1C0B  mulsd       xmm6,xmm7
-00007FFAE53F1C0F  movaps      xmm7,xmm6
-00007FFAE53F1C12  addsd       xmm7,xmm9
-00007FFAE53F1C17  movaps      xmm6,xmm0
-; rem - 1
-00007FFAE53F1C1A  dec         esi
-00007FFAE53F1C1C  jmp         00007FFAE53F1BA1
+// MANDEL_INNER()
+//   Repeated 8 times
+00007FF7A3CF1050  vmulps      ymm1,ymm3,ymm7
+00007FF7A3CF1054  vaddps      ymm0,ymm1,ymm1
+00007FF7A3CF1058  vmulps      ymm4,ymm3,ymm3
+00007FF7A3CF105C  vaddps      ymm3,ymm0,ymm9
+00007FF7A3CF1061  vmulps      ymm1,ymm7,ymm7
+00007FF7A3CF1065  vsubps      ymm0,ymm1,ymm4
+00007FF7A3CF1069  vaddps      ymm2,ymm0,ymm8
+// ...
+// MANDEL_CHECK ();
+00007FF7A3CF113F  vcmplt_oqps ymm1,ymm2,ymm12
+00007FF7A3CF1145  vmovmskps   eax,ymm1
+00007FF7A3CF1149  vaddps      ymm3,ymm0,ymm9
+// if (!cmp_mask)
+00007FF7A3CF114E  test        eax,eax
+00007FF7A3CF1150  je          `anonymous namespace'::mandelbrot_avx_slow+192h (07FF7A3CF1192h)
+// for (auto outer = 6; outer > 0; --outer)
+00007FF7A3CF1152  dec         ecx
+00007FF7A3CF1154  test        ecx,ecx
+00007FF7A3CF1156  jg          `anonymous namespace'::mandelbrot_avx_slow+50h (07FF7A3CF1050h)
+// MANDEL_INNER()
+//   Repeated 2 times
+00007FF7A3CF115C  vmulps      ymm1,ymm3,ymm7
+00007FF7A3CF1160  vaddps      ymm0,ymm1,ymm1
+00007FF7A3CF1164  vmulps      ymm1,ymm7,ymm7
+00007FF7A3CF1168  vmulps      ymm5,ymm3,ymm3
+00007FF7A3CF116C  vaddps      ymm3,ymm0,ymm9
+00007FF7A3CF1171  vsubps      ymm0,ymm1,ymm5
+00007FF7A3CF1175  vaddps      ymm2,ymm0,ymm8
+// ...
+// MANDEL_CHECK ();
+00007FF7A3CF1186  vcmplt_oqps ymm2,ymm1,ymm12
+00007FF7A3CF118C  vmovmskps   eax,ymm2
 ```
+
+This looks good, but why aren't we seeing 4x time speedup?
+
+# Understanding latency & throughput of assembly instructions
+
+When I checked the timings for the assembly instructions (opcodes) we are using we see there are two numbers listed for each (From [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/)):
+
+| opcode            | Latency  | Throughput |
+| ----------------- | -------- | ---------- |
+| vmulps            | 5        | 1          |
+| vaddps            | 3        | 1          |
+| vsubps            | 3        | 1          |
+| vcmpps            | 3        | 1          |
+| vmovmskps         | 1        | 1          |
+
+I have an Intel I5 3570K which happens is the Ivy Bridge architecture. The numbers are taken for that architecture.
+
+Latency is how many clock cycles it takes for a result to be ready to be used. Throughput is how many clock cycles the CPU needs to compute result. Throughput on more modern Intel architectures is 0.5 for many of the instructions above meaning the CPU can do run two instructions i parallel.
+
+The issue with my code above is that because the calculations are dependent on the previous result the CPU needs to stall because of the latency. If we ran more independent calculations in parallel we should be better able to use the throughput of the CPU by avoiding stalls.
+
+This technique is also used by `mandelbrot_6` for the same reasons.
+
+There are 16 AVX registers on my machine and each group of 8 pixels needs 2 registers to carry over in each iteration. So if we compute 4 groups of 8 pixels in we use 8 registers and have 8 more for other computations meaning we probably don't need to push results on the stack.
+
+This means that each iteration will compute 32 pixels.
+
+# Processing 32 pixels per iteration
+
+The code:
+
+```c+++
+#define MANDEL_INDEPENDENT(i)                                         \
+        xy[i] = _mm256_mul_ps (x[i], y[i]);                           \
+        x2[i] = _mm256_mul_ps (x[i], x[i]);                           \
+        y2[i] = _mm256_mul_ps (y[i], y[i]);
+#define MANDEL_DEPENDENT(i)                                           \
+        y[i]  = _mm256_add_ps (_mm256_add_ps (xy[i], xy[i]) , cy[i]); \
+        x[i]  = _mm256_add_ps (_mm256_sub_ps (x2[i], y2[i]) , cx[i]);
+
+#define MANDEL_ITERATION()  \
+  MANDEL_INDEPENDENT(0)     \
+  MANDEL_DEPENDENT(0)       \
+  MANDEL_INDEPENDENT(1)     \
+  MANDEL_DEPENDENT(1)       \
+  MANDEL_INDEPENDENT(2)     \
+  MANDEL_DEPENDENT(2)       \
+  MANDEL_INDEPENDENT(3)     \
+  MANDEL_DEPENDENT(3)
+
+#define MANDEL_CMPMASK()  \
+        cmp_mask      =   \
+            (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[0], y2[0]), _mm256_set1_ps (4.0F), _CMP_LT_OQ))      ) \
+          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[1], y2[1]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 8 ) \
+          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[2], y2[2]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 16) \
+          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[3], y2[3]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 24)
+
+  MANDEL_INLINE int mandelbrot_avx (__m256 cx[4], __m256 cy[4])
+  {
+
+    __m256  x[4] {cx[0], cx[1], cx[2], cx[3]};
+    __m256  y[4] {cy[0], cy[1], cy[2], cy[3]};
+    __m256 x2[4];
+    __m256 y2[4];
+    __m256 xy[4];
+
+    std::uint32_t cmp_mask;
+
+    // 6 * 8 + 2 => 50 iterations
+    auto iter = 6;
+    do
+    {
+      // 8 inner steps
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+
+      MANDEL_CMPMASK();
+
+      if (!cmp_mask)
+      {
+        return 0;
+      }
+
+      --iter;
+
+    } while (iter && cmp_mask);
+
+    // Last 2 steps
+    MANDEL_ITERATION();
+    MANDEL_ITERATION();
+
+    MANDEL_CMPMASK();
+
+    return cmp_mask;
+  }
+```
+
+The code has grown a lot more complex because instead of processing a single pixel in each iteration we are now processing 32 pixels.
+
+What are the results?
+
+| Algorithm         | Time  | Speedup |
+| ----------------- | ----- | ------- |
+| mandelbrot_6      | 1.13s | 1x      |
+| F# (reference)    | 28s   | -24x    |
+| C++ (reference)   | 22s   | -20x    |
+| C++ (AVX)         | 790ms | 1.4x    |
+| C++ (unroll)      | 520ms | 2.2x    |
+| C++ (32 pixels)   | 290ms | 3.9x    |
+
+We finally landed where we wanted, by using floats and AVX we sped up `mandelbrot_6` 4 times.
+
+## Final thoughts
+
+When doing this exercise I was reminded that parallelism is so much more than just executing on multiple cores. It's also about using the SIMD (single instruction, multiple data) aka SSE/AVX capability of todays CPU:s.
+
+More subtle is that my mental model of how CPU:s execute code is horribly out-dated. I basically still thinks in terms of MC68000 assembly code but todays CPU:s reorder the code on the fly (in order to work around latency in instructions and memory). We have three layers of cache because RAM is just awfully slow compared to the CPU making writing concurrent code even harder. In addition, each instruction perhaps should be seen more as an async Task in that the throughput is high but we have long poor latency.
+
+Compilers definitly can do better but I guess it's probably quite hard to model CPU instructions and then optimize for performance. For Java and .NET the jitter has much more limited memory and time budget meaning it's unlikely to perform as good as a modern C/C++ compiler.
+
+It gets even more complicated as one the optimizations applied by `mandelbrot_6` relies on one of the properties of the mandelbrot set (that is we only need to do the infinity check every 8th iteration). For a compiler to apply this optimization it would have to identify the algorithm as a mandelbrot set generator and using the mathematical properties of the mandelbrot set apply this optimization.
+
+I am also reminded that when trying to write performant code that you have other examples to look at. It is very easy to trick yourself into thinking that you probably wrote the fast code there is. Other examples can help you show new techniques that when you apply it improves performance alot. I thought my original AVX was pretty optimal but now I know that unrolling loops and computing several groups of pixel at the same time gives significant performance boosts.
+
+It's also interesting to see that performance difference between a reasonable efficiently trivial implementation is 80x slower than the fastest implementation that I could come up with. That's a quite large difference. There's much power in the CPU that is often woefully underused.
+
+All in all a quite interesting experience for me that I like to share in the hope that someone will come up with an even faster version.
+
