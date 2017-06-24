@@ -243,7 +243,60 @@ The code basically maps directly to the C++ code and we don't see unexpected ove
 
 When checking the code for `mandelbrot_6` I noted that they write the code in such a way to allow it to unroll the inner loop 8 times. In addition, they only do the infinity check after the 8 iterations. This mean we might do a bit of unnecessary work but the inner loop will be tighter and we reduce the overhead of the end of loop check.
 
+```c++
+// Visual C++ is very restrictive with unrolling loops so this is a way to force unrolling
+#define MANDEL_INNER()                                    \
+        x2 = _mm256_mul_ps  (x, x);                       \
+        y2 = _mm256_mul_ps  (y, y);                       \
+        r2 = _mm256_add_ps  (x2, y2);                     \
+        xy = _mm256_mul_ps  (x, y);                       \
+        y  = _mm256_add_ps (_mm256_add_ps (xy, xy) , cy); \
+        x  = _mm256_add_ps (_mm256_sub_ps (x2, y2) , cx);
 
+#define MANDEL_CHECK()                                    \
+        auto cmp        = _mm256_cmp_ps  (r2, _mm256_set1_ps (4.0), _CMP_LT_OQ);  \
+        cmp_mask        = _mm256_movemask_ps (cmp);
+
+  inline int mandelbrot_avx_slow (__m256 cx, __m256 cy, std::size_t max_iter)
+  {
+    auto x = cx;
+    auto y = cy;
+
+    int cmp_mask = 0;
+
+    __m256 x2, y2, xy, r2;
+
+    //
+    for (auto outer = 6; outer > 0; --outer)
+    {
+      // 8 inner "loops"
+      MANDEL_INNER()
+      MANDEL_INNER()
+      MANDEL_INNER()
+      MANDEL_INNER()
+      MANDEL_INNER()
+      MANDEL_INNER()
+      MANDEL_INNER()
+      MANDEL_INNER()
+
+      // Infinity check
+      MANDEL_CHECK ();
+
+      if (!cmp_mask)
+      {
+        return 0;
+      }
+
+    }
+
+    MANDEL_INNER()
+    MANDEL_INNER()
+
+    MANDEL_CHECK ();
+
+    return cmp_mask;
+  }
+```
 
 
 ## Results
@@ -253,8 +306,8 @@ When checking the code for `mandelbrot_6` I noted that they write the code in su
 | mandelbrot_6      | 1.13s | 1x      |
 | F# (reference)    | 28s   | -24x    |
 | C++ (reference)   | 22s   | -20x    |
-| C++ (AVX)         | 790ms | 1.4     |
-| C++ (unroll)      | _     | ?x      |
+| C++ (AVX)         | 790ms | 1.4x    |
+| C++ (unroll)      | 600ms | 1.9x    |
 | C++ (multiple)    | 290ms | 3.9x    |
 
 16000x16000(50)
