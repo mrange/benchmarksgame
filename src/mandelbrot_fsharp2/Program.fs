@@ -36,35 +36,140 @@ let timeIt a =
 open System.Numerics
 open System.Threading.Tasks
 
-
   // The mandelbrot equation: Z' = Z^2 + C
 let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
   let inline ( * ) x y = (x : Vector<float32>)*y
   let inline ( + ) x y = (x : Vector<float32>)+y
 
   let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
-    if rem > 0 then
-      let xy_1 = x_1 * y_1
-      let x2_1 = x_1 * x_1
-      let y2_1 = y_1 * y_1
-      let y_1  = xy_1 + xy_1 + cy_1 
-      let x_1  = x2_1 - y2_1 + cx_1
+    let zero          = Vector<float32>.Zero
 
-      let xy_2 = x_2 * y_2
-      let x2_2 = x_2 * x_2
-      let y2_2 = y_2 * y_2
-      let y_2  = xy_2 + xy_2 + cy_2
-      let x_2  = x2_2 - y2_2 + cx_2
+    let mutable x_1   = x_1
+    let mutable y_1   = y_1
+    let mutable x_2   = x_2
+    let mutable y_2   = y_2
+
+    let mutable xy_1  = zero
+    let mutable x2_1  = zero
+    let mutable y2_1  = zero
+    let mutable xy_2  = zero
+    let mutable x2_2  = zero
+    let mutable y2_2  = zero
+
+    if rem > 0 then
+      // #0
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #1
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #2
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #3
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #4
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #5
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #6
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #7
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
 
       let r2_1 = x2_1 + y2_1
       let r2_2 = x2_2 + y2_2
 
-      if 
-            r2_1.[0] < 4.F 
+      if
+            r2_1.[0] < 4.F
         ||  r2_1.[1] < 4.F
         ||  r2_1.[2] < 4.F
         ||  r2_1.[3] < 4.F
-        ||  r2_2.[0] < 4.F 
+        ||  r2_2.[0] < 4.F
         ||  r2_2.[1] < 4.F
         ||  r2_2.[2] < 4.F
         ||  r2_2.[3] < 4.F
@@ -73,12 +178,31 @@ let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<
         else
           0uy
     else
-      // TODO: Already computed
-      let x2_1 = x_1 * x_1
-      let y2_1 = y_1 * y_1
+      // #48
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
 
-      let x2_2 = x_2 * x_2
-      let y2_2 = y_2 * y_2
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #49
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
 
       let r2_1 = x2_1 + y2_1
       let r2_2 = x2_2 + y2_2
@@ -86,7 +210,7 @@ let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<
       let inline bit (r : Vector<float32>) i b =
         if    r.[i] < 4.F then b
         else  0uy
-      
+
       let r =
             bit r2_1 0 0x80uy
         ||| bit r2_1 1 0x40uy
@@ -99,7 +223,7 @@ let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<
 
       r
 
-  loop 50 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
+  loop 6 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
 
 [<EntryPoint>]
 let main argv =
@@ -123,27 +247,23 @@ let main argv =
 
   let pixels  = Array.zeroCreate (width*dim)
 
-  let incx_1  = 
+  let incx_1  =
     [|
       0.F * scalex
       1.F * scalex
       2.F * scalex
       3.F * scalex
-    |] |> Vector<float32> 
-  let incx_2  = 
+    |] |> Vector<float32>
+  let incx_2  =
     [|
       4.F * scalex
       5.F * scalex
       6.F * scalex
       7.F * scalex
-    |] |> Vector<float32> 
+    |] |> Vector<float32>
 
   let mandelbrotSet () =
-    let sequentialFor (inclusiveFrom, exclusiveTo, f: int -> unit) =
-      for i = inclusiveFrom to (exclusiveTo - 1) do 
-        f i
-    sequentialFor (0, dim, fun y -> 
-//    Parallel.For (0, dim, fun y -> 
+    Parallel.For (0, dim, fun y ->
       let yoffset = y*width
       for w = 0 to (width - 1) do
         let x     = w*8
