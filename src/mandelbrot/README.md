@@ -2,13 +2,15 @@
 
 **Source code: https://github.com/mrange/benchmarksgame/tree/master/src/mandelbrot**
 
+**Update 2017-06-25 - Decided I could do a bit better with F# so I added an improved F# program that uses the .NET SSE**
+
 Recently I discovered [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/) which intrigued me, especially the [mandelbrot version](http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html).
 
 The mandelbrot set is computed by determining if repeated applications of `Z' = Z^2 + C` tends towards infinity or not.
 
 `Z` is a complex number which can be thought of a 2D coordinate. In order to visualize the mandelbrot set each pixel in an image can be mapped to complex number `Z` and for each pixel we do the infinity test. If the series tend to infinity we color the pixel white, black otherwise.
 
-It's a problem that lends itself very well to parallelize as each pixel is independent of the others.
+It's a problem that easy to parallelize as each pixel is independent of the others.
 
 In F# the mandelbrot infinity test could look like this:
 
@@ -152,7 +154,7 @@ It's not too bad but one see that `x*x` and `y*y` is computed twice and the exit
 
 The results of the program can be viewed using: http://paulcuth.me.uk/netpbm-viewer/
 
-At the benchmark site the [`mandelbrot_6`](http://benchmarksgame.alioth.debian.org/u64q/program.php?test=mandelbrot&lang=gcc&id=6) generates a 16,000x16,000 mandelbrot set in 1.13 sec.
+The best algrorithm at the  site is [`mandelbrot_6`](http://benchmarksgame.alioth.debian.org/u64q/program.php?test=mandelbrot&lang=gcc&id=6) that generates a 16,000x16,000 mandelbrot set in 1.13 sec.
 
 The F# program generates the same set in 28 sec on my machine, roughly 25x times slower as seen in the table below.
 
@@ -594,6 +596,368 @@ What are the results?
 | C++ (32 pixels)   | 290ms | 3.9x    |
 
 We finally landed where we wanted, by using floats and AVX we sped up `mandelbrot_6` 4 times.
+
+## Applying our learnings to F#
+
+.NET and therefore F# doesn't support AVX but .NET support SSE. How fast can we make an F# program if we apply all our new knowledge to it.
+
+Here is the updated F# mandelbrot infinity test.
+
+```fsharp
+  // The mandelbrot equation: Z' = Z^2 + C
+let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
+  let inline ( * ) x y = (x : Vector<float32>)*y
+  let inline ( + ) x y = (x : Vector<float32>)+y
+
+  let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
+    let zero          = Vector<float32>.Zero
+
+    let mutable x_1   = x_1
+    let mutable y_1   = y_1
+    let mutable x_2   = x_2
+    let mutable y_2   = y_2
+
+    let mutable xy_1  = zero
+    let mutable x2_1  = zero
+    let mutable y2_1  = zero
+    let mutable xy_2  = zero
+    let mutable x2_2  = zero
+    let mutable y2_2  = zero
+
+    if rem > 0 then
+      System.Diagnostics.Debugger.Break ()
+      // #0
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #1
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #2
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #3
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #4
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #5
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #6
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #7
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      let r2_1 = x2_1 + y2_1
+      let r2_2 = x2_2 + y2_2
+
+      if
+            r2_1.[0] < 4.F
+        ||  r2_1.[1] < 4.F
+        ||  r2_1.[2] < 4.F
+        ||  r2_1.[3] < 4.F
+        ||  r2_2.[0] < 4.F
+        ||  r2_2.[1] < 4.F
+        ||  r2_2.[2] < 4.F
+        ||  r2_2.[3] < 4.F
+        then
+          loop (rem - 1) x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2
+        else
+          0uy
+    else
+      // #48
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      // #49
+      xy_1     <- x_1 * y_1
+      x2_1     <- x_1 * x_1
+      y2_1     <- y_1 * y_1
+      y_1      <- xy_1 + xy_1 + cy_1
+      x_1      <- x2_1 - y2_1 + cx_1
+
+      xy_2     <- x_2 * y_2
+      x2_2     <- x_2 * x_2
+      y2_2     <- y_2 * y_2
+      y_2      <- xy_2 + xy_2 + cy_2
+      x_2      <- x2_2 - y2_2 + cx_2
+
+      let r2_1 = x2_1 + y2_1
+      let r2_2 = x2_2 + y2_2
+
+      let inline bit (r : Vector<float32>) i b =
+        if    r.[i] < 4.F then b
+        else  0uy
+
+      let r =
+            bit r2_1 0 0x80uy
+        ||| bit r2_1 1 0x40uy
+        ||| bit r2_1 2 0x20uy
+        ||| bit r2_1 3 0x10uy
+        ||| bit r2_2 0 0x08uy
+        ||| bit r2_2 1 0x04uy
+        ||| bit r2_2 2 0x02uy
+        ||| bit r2_2 3 0x01uy
+
+      r
+
+  loop 6 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
+```
+
+It's very far from being idiomatic F# but is it fast?
+
+| Algorithm         | Time  | Speedup |
+| ----------------- | ----- | ------- |
+| mandelbrot_6      | 1.13s | 1x      |
+| F# (reference)    | 28s   | -24x    |
+| C++ (reference)   | 22s   | -20x    |
+| C++ (AVX)         | 790ms | 1.4x    |
+| C++ (unroll)      | 520ms | 2.2x    |
+| C++ (32 pixels)   | 290ms | 3.9x    |
+| F# (SSE)          | 890ms | 1.3x    |
+
+The updated F# code is actually 30% faster than `mandelbrot_6` but before we break out the champagne this program uses single precision floats in order to process 4 pixels per instruction where `mandelbrot_6` uses double precision. Still not too shabby and about 30x faster than the reference F# mandelbrot generator.
+
+Let's dig into the assembly code again:
+
+```asm
+; if rem > 0 then
+00007FFE7F953A72  test        eax,eax
+00007FFE7F953A74  jle         00007FFE7F953EAE
+; 00007FFE7F953A7A  call        00007FFEDE630CC0
+; xy_1     <- x_1 * y_1
+00007FFE7F953A7F  movaps      xmm0,xmm6
+00007FFE7F953A82  mulps       xmm0,xmm7
+; x2_1     <- x_1 * x_1
+00007FFE7F953A85  movaps      xmm1,xmm6
+00007FFE7F953A88  mulps       xmm1,xmm6
+; y2_1     <- y_1 * y_1
+00007FFE7F953A8B  movaps      xmm2,xmm7
+00007FFE7F953A8E  mulps       xmm2,xmm7
+; y_1      <- xy_1 + xy_1 + cy_1
+00007FFE7F953A91  addps       xmm0,xmm0
+; Loads cx from [rdi] (sad, we have 16 SSE registers)
+00007FFE7F953A94  movups      xmm3,xmmword ptr [rdi]
+00007FFE7F953A97  movaps      xmm7,xmm0
+00007FFE7F953A9A  addps       xmm7,xmm3
+; x_1      <- x2_1 - y2_1 + cx_1
+00007FFE7F953A9D  subps       xmm1,xmm2
+; Loads cy from [rsi] (sad, we have 16 SSE registers)
+00007FFE7F953AA0  movups      xmm2,xmmword ptr [rsi]
+00007FFE7F953AA3  movaps      xmm6,xmm1
+00007FFE7F953AA6  addps       xmm6,xmm2
+; xy_2     <- x_2 * y_2
+00007FFE7F953AA9  movaps      xmm0,xmm8
+00007FFE7F953AAD  mulps       xmm0,xmm9
+; x2_2     <- x_2 * x_2
+00007FFE7F953AB1  movaps      xmm1,xmm8
+00007FFE7F953AB5  mulps       xmm1,xmm8
+; y2_2     <- y_2 * y_2
+00007FFE7F953AB9  movaps      xmm2,xmm9
+00007FFE7F953ABD  mulps       xmm2,xmm9
+; y_2      <- xy_2 + xy_2 + cy_2
+00007FFE7F953AC1  addps       xmm0,xmm0
+; Loads cx from [rbp] (sad, we have 16 SSE registers)
+00007FFE7F953AC4  movups      xmm3,xmmword ptr [rbp]
+00007FFE7F953AC8  movaps      xmm9,xmm0
+00007FFE7F953ACC  addps       xmm9,xmm3
+00007FFE7F953AD0  subps       xmm1,xmm2
+; Loads cy from [rbx] (sad, we have 16 SSE registers)
+00007FFE7F953AD3  movups      xmm2,xmmword ptr [rbx]
+; ... repeated 8 times
+; let r2_1 = x2_1 + y2_1
+00007FFE7F953D7D  movaps      xmm0,xmm1
+00007FFE7F953D80  addps       xmm0,xmm2
+; let r2_2 = x2_2 + y2_2
+00007FFE7F953D83  movaps      xmm5,xmm3
+00007FFE7F953D86  addps       xmm5,xmm4
+; r2_1.[0] < 4.F
+00007FFE7F953D89  movaps      xmm1,xmm0
+00007FFE7F953D8C  movss       xmm2,dword ptr [7FFE7F954060h]
+00007FFE7F953D94  ucomiss     xmm2,xmm1
+00007FFE7F953D97  ja          00007FFE7F953E65
+; ||  r2_1.[1] < 4.F
+00007FFE7F953D9D  movaps      xmm3,xmm0
+00007FFE7F953DA0  psrldq      xmm3,4
+00007FFE7F953DA5  movss       xmm4,dword ptr [7FFE7F954064h]
+00007FFE7F953DAD  ucomiss     xmm4,xmm3
+00007FFE7F953DB0  seta        al
+00007FFE7F953DB3  movzx       eax,al
+00007FFE7F953DB6  test        eax,eax
+00007FFE7F953DB8  jne         00007FFE7F953E65
+; ... repeated 6 more times.
+;  Unfortunately the SSE support in .NET doesn't support parallel comparison
+; We are done, all points tend to infinity
+00007FFE7F953E85  xor         eax,eax
+; ...
+00007FFE7F953EAD  ret
+; #48
+; xy_1     <- x_1 * y_1
+00007FFE7F953EAE  movaps      xmm0,xmm6
+00007FFE7F953EB1  mulps       xmm0,xmm7
+; x2_1     <- x_1 * x_1
+00007FFE7F953EB4  movaps      xmm1,xmm6
+00007FFE7F953EB7  mulps       xmm1,xmm6
+; y2_1     <- y_1 * y_1
+00007FFE7F953EBA  movaps      xmm2,xmm7
+00007FFE7F953EBD  mulps       xmm2,xmm7
+; y_1      <- xy_1 + xy_1 + cy_1
+00007FFE7F953EC0  addps       xmm0,xmm0
+00007FFE7F953EC3  movups      xmm3,xmmword ptr [rdi]
+; x_1      <- x2_1 - y2_1 + cx_1
+00007FFE7F953EC6  movaps      xmm7,xmm0
+00007FFE7F953EC9  addps       xmm7,xmm3
+00007FFE7F953ECC  subps       xmm1,xmm2
+00007FFE7F953ECF  movups      xmm2,xmmword ptr [rsi]
+00007FFE7F953ED2  movaps      xmm6,xmm1
+00007FFE7F953ED5  addps       xmm6,xmm2
+; xy_2     <- x_2 * y_2
+00007FFE7F953ED8  movaps      xmm0,xmm8
+00007FFE7F953EDC  mulps       xmm0,xmm9
+; x2_2     <- x_2 * x_2
+00007FFE7F953EE0  movaps      xmm3,xmm8
+00007FFE7F953EE4  mulps       xmm3,xmm8
+; y2_2     <- y_2 * y_2
+00007FFE7F953EE8  movaps      xmm4,xmm9
+00007FFE7F953EEC  mulps       xmm4,xmm9
+; y_2      <- xy_2 + xy_2 + cy_2
+00007FFE7F953EF0  addps       xmm0,xmm0
+00007FFE7F953EF3  movups      xmm1,xmmword ptr [rbp]
+00007FFE7F953EF7  movaps      xmm9,xmm0
+00007FFE7F953EFB  addps       xmm9,xmm1
+; x_2      <- x2_2 - y2_2 + cx_2
+00007FFE7F953EFF  subps       xmm3,xmm4
+00007FFE7F953F02  movups      xmm4,xmmword ptr [rbx]
+00007FFE7F953F05  movaps      xmm8,xmm3
+00007FFE7F953F09  addps       xmm8,xmm4
+; ... repeated 1 more time
+; let r2_1 = x2_1 + y2_1
+00007FFE7F953F36  movaps      xmm0,xmm1
+00007FFE7F953F39  addps       xmm0,xmm2
+; let r2_2 = x2_2 + y2_2
+00007FFE7F953F3C  movaps      xmm5,xmm3
+00007FFE7F953F3F  addps       xmm5,xmm4
+; bit r2_1 0 0x80uy
+00007FFE7F953F42  movaps      xmm1,xmm0
+00007FFE7F953F45  movss       xmm2,dword ptr [7FFE7F954080h]
+00007FFE7F953F4D  ucomiss     xmm2,xmm1
+00007FFE7F953F50  jbe         00007FFE7F953F59
+00007FFE7F953F52  mov         eax,80h
+00007FFE7F953F57  jmp         00007FFE7F953F5B
+00007FFE7F953F59  xor         eax,eax
+; ||| bit r2_1 1 0x40uy
+00007FFE7F953F5B  movaps      xmm1,xmm0
+00007FFE7F953F5E  psrldq      xmm1,4
+00007FFE7F953F63  movss       xmm2,dword ptr [7FFE7F954084h]
+00007FFE7F953F6B  ucomiss     xmm2,xmm1
+00007FFE7F953F6E  jbe         00007FFE7F953F77
+00007FFE7F953F70  mov         edx,40h
+00007FFE7F953F75  jmp         00007FFE7F953F79
+00007FFE7F953F77  xor         edx,edx
+00007FFE7F953F79  or          eax,edx
+; ... repeated 6 more times.
+;  Unfortunately the SSE support in .NET doesn't support parallel comparison
+; We are done, not all points points tend to infinity
+; ...
+00007FFE7F954059  ret
+```
+
+We see that unfortunately cx and cy are loaded from memory (cache) even though we have 16 registers available but it's not too damaging.
+
+What's worse is that because .NET doesn't support SSE parallel comparison each float is compared separately. The overhead of this is pushed down in that we only check for the condition every 8th iteration.
+
+I think the comparison overhead can be pushed down further by applying some inline IL (a deprecated but cool F# feature). If I return to this post that I something I like to try.
 
 ## Final thoughts
 

@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mandelbrot_avx2", "mandelbr
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "mandelbrot_fsharp", "mandelbrot\mandelbrot_fsharp\mandelbrot_fsharp.fsproj", "{5D6AEB41-9E21-401B-9770-6D9639CCA883}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "mandelbrot_fsharp2", "mandelbrot\mandelbrot_fsharp2\mandelbrot_fsharp2.fsproj", "{689545C0-7CD5-4D01-9736-016EA6EADA64}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,8 +63,20 @@ Global
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|x64.ActiveCfg = Release|x64
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|x64.Build.0 = Release|x64
-		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|x86.ActiveCfg = Release|Any CPU
-		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|x86.Build.0 = Release|Any CPU
+		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|x86.ActiveCfg = Release|x86
+		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|x86.Build.0 = Release|x86
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Debug|x64.ActiveCfg = Debug|x64
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Debug|x64.Build.0 = Debug|x64
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Debug|x86.ActiveCfg = Debug|x86
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Debug|x86.Build.0 = Debug|x86
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Release|x64.ActiveCfg = Release|x64
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Release|x64.Build.0 = Release|x64
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Release|x86.ActiveCfg = Release|x86
+		{689545C0-7CD5-4D01-9736-016EA6EADA64}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
