@@ -34,41 +34,30 @@ let timeIt a =
   after - before, acc0 - bcc0, acc1 - bcc1, acc2 - bcc2, r
 
 open System.Numerics
+open System.Threading.Tasks
+
 
   // The mandelbrot equation: Z' = Z^2 + C
 let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
-  let zero          = Vector<float32>.Zero
+  let inline ( * ) x y = (x : Vector<float32>)*y
+  let inline ( + ) x y = (x : Vector<float32>)+y
 
-  let mutable x_1   = cx_1
-  let mutable y_1   = cy_1
-  let mutable x2_1  = zero
-  let mutable y2_1  = zero
-  let mutable xy_1  = zero
-  let mutable r2_1  = zero
-
-  let mutable x_2   = cx_2
-  let mutable y_2   = cy_2
-  let mutable x2_2  = zero
-  let mutable y2_2  = zero
-  let mutable xy_2  = zero
-  let mutable r2_2  = zero
-
-  let rec loop rem =
+  let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
     if rem > 0 then
-      xy_1 <- x_1 * y_1
-      x2_1 <- x_1 * x_1
-      y2_1 <- y_1 * y_1
-      y_1  <- xy_1 + xy_1 + cy_1 
-      x_1  <- x2_1 - y2_1 + cx_1
+      let xy_1 = x_1 * y_1
+      let x2_1 = x_1 * x_1
+      let y2_1 = y_1 * y_1
+      let y_1  = xy_1 + xy_1 + cy_1 
+      let x_1  = x2_1 - y2_1 + cx_1
 
-      xy_2 <- x_2 * y_2
-      x2_2 <- x_2 * x_2
-      y2_2 <- y_2 * y_2
-      y_2  <- xy_2 + xy_2 + cy_2
-      x_2  <- x2_2 - y2_2 + cx_2
+      let xy_2 = x_2 * y_2
+      let x2_2 = x_2 * x_2
+      let y2_2 = y_2 * y_2
+      let y_2  = xy_2 + xy_2 + cy_2
+      let x_2  = x2_2 - y2_2 + cx_2
 
-      r2_1 <- x2_1 + y2_1
-      r2_2 <- x2_2 + y2_2
+      let r2_1 = x2_1 + y2_1
+      let r2_2 = x2_2 + y2_2
 
       if 
             r2_1.[0] < 4.F 
@@ -80,10 +69,20 @@ let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<
         ||  r2_2.[2] < 4.F
         ||  r2_2.[3] < 4.F
         then
-          loop (rem - 1)
+          loop (rem - 1) x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2
         else
           0uy
     else
+      // TODO: Already computed
+      let x2_1 = x_1 * x_1
+      let y2_1 = y_1 * y_1
+
+      let x2_2 = x_2 * x_2
+      let y2_2 = y_2 * y_2
+
+      let r2_1 = x2_1 + y2_1
+      let r2_2 = x2_2 + y2_2
+
       let inline bit (r : Vector<float32>) i b =
         if    r.[i] < 4.F then b
         else  0uy
@@ -100,7 +99,7 @@ let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<
 
       r
 
-  loop 50
+  loop 50 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
 
 [<EntryPoint>]
 let main argv =
@@ -140,7 +139,7 @@ let main argv =
     |] |> Vector<float32> 
 
   let mandelbrotSet () =
-    for y = 0 to (dim - 1) do
+    Parallel.For (0, dim, fun y -> 
       let yoffset = y*width
       for w = 0 to (width - 1) do
         let x     = w*8
@@ -152,6 +151,7 @@ let main argv =
         let cy_2  = Vector<float32> cy
         let bits  = mandelbrot cx_1 cy_1 cx_2 cy_2
         pixels.[yoffset + w] <- bits
+      )
 
   printfn "Generating mandelbrot set: %dx%d(%d)" dim dim maxIter
   let ms, cc0, cc1, cc2, _ = timeIt mandelbrotSet
