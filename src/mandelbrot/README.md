@@ -2,7 +2,7 @@
 
 **Source code: https://github.com/mrange/benchmarksgame/tree/master/src/mandelbrot**
 
-**Update 2017-06-25 - Decided I could do a bit better with F# so added an improved F# program that uses the .NET SSE**
+**Update 2017-06-25 - Decided I could do a bit better with F# so I added an improved F# program that uses the .NET SSE**
 
 Recently I discovered [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/) which intrigued me, especially the [mandelbrot version](http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html).
 
