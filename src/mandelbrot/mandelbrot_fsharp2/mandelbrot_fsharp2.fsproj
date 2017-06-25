@@ -9,10 +9,11 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>mandelbrot_fsharp2</RootNamespace>
     <AssemblyName>mandelbrot_fsharp2</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFSharpCoreVersion>4.4.1.0</TargetFSharpCoreVersion>
     <Name>mandelbrot_fsharp2</Name>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -116,11 +117,11 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Numerics.Vectors">
-      <HintPath>..\packages\System.Numerics.Vectors.4.3.0\lib\portable-net45+win8+wp8+wpa81\System.Numerics.Vectors.dll</HintPath>
+      <HintPath>..\..\packages\System.Numerics.Vectors.4.3.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.ValueTuple">
-      <HintPath>..\packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+      <HintPath>..\..\packages\System.ValueTuple.4.3.1\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

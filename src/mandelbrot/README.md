@@ -625,7 +625,6 @@ let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<
     let mutable y2_2  = zero
 
     if rem > 0 then
-      System.Diagnostics.Debugger.Break ()
       // #0
       xy_1     <- x_1 * y_1
       x2_1     <- x_1 * x_1
