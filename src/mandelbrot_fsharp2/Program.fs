@@ -139,7 +139,11 @@ let main argv =
     |] |> Vector<float32> 
 
   let mandelbrotSet () =
-    Parallel.For (0, dim, fun y -> 
+    let sequentialFor (inclusiveFrom, exclusiveTo, f: int -> unit) =
+      for i = inclusiveFrom to (exclusiveTo - 1) do 
+        f i
+    sequentialFor (0, dim, fun y -> 
+//    Parallel.For (0, dim, fun y -> 
       let yoffset = y*width
       for w = 0 to (width - 1) do
         let x     = w*8
