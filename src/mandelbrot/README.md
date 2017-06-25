@@ -176,7 +176,7 @@ This makes me believe that `mandelbrot_6` could be made 4x times faster by using
 
 Another, approach is to use the GPU but that is a topic for another post.
 
-.NET has limited support for SSE and no support for AVX which means I will use C++.
+.NET has limited support for SSE and no support for AVX which means I will use C++ for now but I will return to F# later if I learn some tricks that can be applied.
 
 ## Creating a reference mandelbrot set generator
 
