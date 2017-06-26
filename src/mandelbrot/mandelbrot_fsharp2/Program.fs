@@ -42,19 +42,17 @@ let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<
   let inline ( + ) x y = (x : Vector<float32>)+y
 
   let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
-    let zero          = Vector<float32>.Zero
-
     let mutable x_1   = x_1
     let mutable y_1   = y_1
     let mutable x_2   = x_2
     let mutable y_2   = y_2
 
-    let mutable xy_1  = zero
-    let mutable x2_1  = zero
-    let mutable y2_1  = zero
-    let mutable xy_2  = zero
-    let mutable x2_2  = zero
-    let mutable y2_2  = zero
+    let mutable xy_1  = Unchecked.defaultof<Vector<float32>>
+    let mutable x2_1  = Unchecked.defaultof<Vector<float32>>
+    let mutable y2_1  = Unchecked.defaultof<Vector<float32>>
+    let mutable xy_2  = Unchecked.defaultof<Vector<float32>>
+    let mutable x2_2  = Unchecked.defaultof<Vector<float32>>
+    let mutable y2_2  = Unchecked.defaultof<Vector<float32>>
 
     if rem > 0 then
       // #0
