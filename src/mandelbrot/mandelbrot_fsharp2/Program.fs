@@ -50,7 +50,7 @@ type Mandelbrot =
       x   <- x2 - y2 + cx
 
     // The mandelbrot equation: Z' = Z^2 + C
-    static member inline mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
+    static member mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
       let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
 
         let mutable x_1   = x_1
