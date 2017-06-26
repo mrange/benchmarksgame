@@ -103,16 +103,22 @@ type Mandelbrot =
           let r2_1 = x2_1 + y2_1
           let r2_2 = x2_2 + y2_2
 
-          if
-                r2_1.[0] < 4.F
-            ||  r2_1.[1] < 4.F
-            ||  r2_1.[2] < 4.F
-            ||  r2_1.[3] < 4.F
-            ||  r2_2.[0] < 4.F
-            ||  r2_2.[1] < 4.F
-            ||  r2_2.[2] < 4.F
-            ||  r2_2.[3] < 4.F
-            then
+          let inline cmp (r : Vector<float32>) i =
+            r.[i] < 4.F
+            //let f = r.[i]
+            //(# "clt" f 4.F : byte #)
+
+          let c = 
+               cmp r2_1 0
+            || cmp r2_1 1
+            || cmp r2_1 2
+            || cmp r2_1 3
+            || cmp r2_2 0
+            || cmp r2_2 1
+            || cmp r2_2 2
+            || cmp r2_2 3
+
+          if c then
               loop (rem - 1) x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2
             else
               0uy
@@ -128,19 +134,24 @@ type Mandelbrot =
           let r2_1 = x2_1 + y2_1
           let r2_2 = x2_2 + y2_2
 
-          let inline bit (r : Vector<float32>) i b =
+          let inline bit (r : Vector<float32>) i s =
+            let f = r.[i]
+            let c = (# "clt" f 4.F : byte #)
+            (# "shl" c s : byte #)
+(*
             if    r.[i] < 4.F then b
             else  0uy
+*)
 
           let r =
-                bit r2_1 0 0x80uy
-            ||| bit r2_1 1 0x40uy
-            ||| bit r2_1 2 0x20uy
-            ||| bit r2_1 3 0x10uy
-            ||| bit r2_2 0 0x08uy
-            ||| bit r2_2 1 0x04uy
-            ||| bit r2_2 2 0x02uy
-            ||| bit r2_2 3 0x01uy
+                bit r2_1 0 7
+            ||| bit r2_1 1 6
+            ||| bit r2_1 2 5
+            ||| bit r2_1 3 4
+            ||| bit r2_2 0 3
+            ||| bit r2_2 1 2
+            ||| bit r2_2 2 1
+            ||| bit r2_2 3 0
 
           r
       
