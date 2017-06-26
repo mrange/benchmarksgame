@@ -36,70 +36,66 @@ let timeIt a =
 open System.Numerics
 open System.Threading.Tasks
 
-type Vec = Vector<float32>
-
 type Mandelbrot =
   class
     
-    static member inline step (x : byref<_>, y : byref<_>, xy : byref<_>, x2 : byref<_>, y2 : byref<_>, cx, cy) =
+    static member inline step (x : byref<_>, y : byref<_>, cx, cy) =
       let inline ( * ) x y = (x : Vector<float32>)*y
       let inline ( + ) x y = (x : Vector<float32>)+y
 
-      xy  <- x * y
-      x2  <- x * x
-      y2  <- y * y
+      let xy = x * y
+      let x2 = x * x
+      let y2 = y * y
       y   <- xy + xy + cy
       x   <- x2 - y2 + cx
 
     // The mandelbrot equation: Z' = Z^2 + C
     static member inline mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
       let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
-        let zero          = Vector<float32>.Zero
 
         let mutable x_1   = x_1
         let mutable y_1   = y_1
         let mutable x_2   = x_2
         let mutable y_2   = y_2
 
-        let mutable xy_1  = zero
-        let mutable x2_1  = zero
-        let mutable y2_1  = zero
-        let mutable xy_2  = zero
-        let mutable x2_2  = zero
-        let mutable y2_2  = zero
-
         if rem > 0 then
           // #0
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #1
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #2
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #3
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #4
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #5
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #6
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #7
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
+
+          let x2_1 = x_1*x_1
+          let y2_1 = y_1*y_1
+
+          let x2_2 = x_2*x_2
+          let y2_2 = y_2*y_2
 
           let r2_1 = x2_1 + y2_1
           let r2_2 = x2_2 + y2_2
@@ -119,12 +115,18 @@ type Mandelbrot =
               0uy
         else
           // #48
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
 
           // #49
-          Mandelbrot.step (&x_1, &y_1, &xy_1, &x2_1, &y2_1, cx_1, cy_1)
-          Mandelbrot.step (&x_2, &y_2, &xy_2, &x2_2, &y2_2, cx_2, cy_2)
+          Mandelbrot.step (&x_1, &y_1, cx_1, cy_1)
+          Mandelbrot.step (&x_2, &y_2, cx_2, cy_2)
+
+          let x2_1 = x_1*x_1
+          let y2_1 = y_1*y_1
+
+          let x2_2 = x_2*x_2
+          let y2_2 = y_2*y_2
 
           let r2_1 = x2_1 + y2_1
           let r2_2 = x2_2 + y2_2
