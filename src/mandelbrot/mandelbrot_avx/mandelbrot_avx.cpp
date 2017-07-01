@@ -180,6 +180,38 @@ namespace
     return cmp_mask;
   }
 
+  MANDEL_INLINE int mandelbrot_avx_full (__m256 cx[4], __m256 cy[4])
+  {
+
+    __m256  x[4] {cx[0], cx[1], cx[2], cx[3]};
+    __m256  y[4] {cy[0], cy[1], cy[2], cy[3]};
+    __m256 x2[4];
+    __m256 y2[4];
+    __m256 xy[4];
+
+    // 6 * 8 + 2 => 50 iterations
+    for (auto iter = 6; iter > 0; --iter)
+    {
+      // 8 inner steps
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+      MANDEL_ITERATION();
+    }
+
+    // Last 2 steps
+    MANDEL_ITERATION();
+    MANDEL_ITERATION();
+
+    MANDEL_CMPMASK();
+
+    return cmp_mask;
+  }
+
   bitmap::uptr compute_set (std::size_t const dim)
   {
     auto set    = create_bitmap (dim, dim);
@@ -206,6 +238,8 @@ namespace
         , 7*scalex
         );
 
+      auto last_reached_full = false;
+
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
@@ -217,11 +251,18 @@ namespace
         auto cy3    = _mm256_add_ps  (cy0, _mm256_set1_ps (3*scaley));
         __m256 cx[] = { cx0, cx0, cx0, cx0 };
         __m256 cy[] = { cy0, cy1, cy2, cy3 };
-        auto bits2  = mandelbrot_avx (cx, cy);
+        auto bits2  = 
+          last_reached_full
+            ? mandelbrot_avx_full (cx, cy)
+            : mandelbrot_avx (cx, cy)
+            ;
+
         pset[yoffset           + w] = 0xFF & bits2;
         pset[yoffset + 1*width + w] = 0xFF & (bits2 >> 8);
         pset[yoffset + 2*width + w] = 0xFF & (bits2 >> 16);
         pset[yoffset + 3*width + w] = 0xFF & (bits2 >> 24);
+
+        last_reached_full = bits2 != 0;
       }
     }
 
