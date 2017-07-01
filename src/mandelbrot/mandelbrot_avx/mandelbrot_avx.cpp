@@ -128,12 +128,15 @@ namespace
   MANDEL_INDEPENDENT(3)     \
   MANDEL_DEPENDENT(3)
 
+#define MANDEL_CMP(i) \
+  _mm256_cmp_ps (_mm256_add_ps (x2[i], y2[i]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)
+
 #define MANDEL_CMPMASK()  \
-        cmp_mask      =   \
-            (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[0], y2[0]), _mm256_set1_ps (4.0F), _CMP_LT_OQ))      ) \
-          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[1], y2[1]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 8 ) \
-          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[2], y2[2]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 16) \
-          | (_mm256_movemask_ps (_mm256_cmp_ps (_mm256_add_ps (x2[3], y2[3]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)) << 24)
+        std::uint32_t cmp_mask =                        \
+            (_mm256_movemask_ps (MANDEL_CMP(0))      )  \
+          | (_mm256_movemask_ps (MANDEL_CMP(1)) << 8 )  \
+          | (_mm256_movemask_ps (MANDEL_CMP(2)) << 16)  \
+          | (_mm256_movemask_ps (MANDEL_CMP(3)) << 24)
 
   MANDEL_INLINE int mandelbrot_avx (__m256 cx[4], __m256 cy[4])
   {
@@ -144,11 +147,8 @@ namespace
     __m256 y2[4];
     __m256 xy[4];
 
-    std::uint32_t cmp_mask;
-
     // 6 * 8 + 2 => 50 iterations
-    auto iter = 6;
-    do
+    for (auto iter = 6; iter > 0; --iter)
     {
       // 8 inner steps
       MANDEL_ITERATION();
@@ -160,16 +160,16 @@ namespace
       MANDEL_ITERATION();
       MANDEL_ITERATION();
 
-      MANDEL_CMPMASK();
+      auto cont = _mm256_movemask_ps (_mm256_or_ps (
+          _mm256_or_ps (MANDEL_CMP(0), MANDEL_CMP(1))
+        , _mm256_or_ps (MANDEL_CMP(2), MANDEL_CMP(3))
+        ));
 
-      if (!cmp_mask)
+      if (!cont)
       {
         return 0;
       }
-
-      --iter;
-
-    } while (iter && cmp_mask);
+    }
 
     // Last 2 steps
     MANDEL_ITERATION();
