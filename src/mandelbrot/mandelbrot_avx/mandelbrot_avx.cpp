@@ -18,10 +18,11 @@
 
 # include "stdafx.h"
 
+#include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <chrono>
-#include <vector>
+#include <memory>
 #include <tuple>
 
 #include <emmintrin.h>
@@ -48,6 +49,65 @@ namespace
     auto after  = std::chrono::high_resolution_clock::now ();
     auto diff   = std::chrono::duration_cast<std::chrono::milliseconds> (after - before).count ();
     return std::make_tuple (diff, std::move (result));
+  }
+
+  struct bitmap
+  {
+    using uptr = std::unique_ptr<bitmap>;
+
+    std::size_t const x ;
+    std::size_t const y ;
+    std::size_t const w ;
+    std::size_t const sz;
+
+    bitmap (std::size_t x, std::size_t y) noexcept
+      : x   (x)
+      , y   (y)
+      , w   ((x + 7) / 8)
+      , sz  (w*y)
+    {
+      b = static_cast<std::uint8_t*> (malloc(sz));
+    }
+
+    ~bitmap () noexcept
+    {
+      free (b);
+      b = nullptr;
+    }
+
+    bitmap (bitmap && bm) noexcept
+      : x   (bm.x)
+      , y   (bm.y)
+      , w   (bm.w)
+      , b   (bm.b)
+      , sz  (bm.sz)
+    {
+      bm.b = nullptr;
+    }
+
+    bitmap (bitmap const &)             = delete;
+    bitmap& operator= (bitmap const &)  = delete;
+    bitmap& operator= (bitmap &&)       = delete;
+
+    std::uint8_t * bits () noexcept
+    {
+      assert (b);
+      return b;
+    }
+
+    std::uint8_t const * bits () const noexcept
+    {
+      assert (b);
+      return b;
+    }
+
+  private:
+    std::uint8_t * b;
+  };
+
+  bitmap::uptr create_bitmap (std::size_t x, std::size_t y)
+  {
+    return std::make_unique<bitmap> (x, y);
   }
 
 #define MANDEL_INDEPENDENT(i)                                         \
@@ -120,15 +180,11 @@ namespace
     return cmp_mask;
   }
 
-  std::vector<std::uint8_t> compute_set (std::size_t const dim)
+  bitmap::uptr compute_set (std::size_t const dim)
   {
-    std::vector<std::uint8_t> set;
-
-    auto width  = dim / 8; // modulo 8 checked earlier
-
-    set.resize (width*dim);
-
-    auto pset   = &set.front ();
+    auto set    = create_bitmap (dim, dim);
+    auto width  = set->w;
+    auto pset   = set->bits ();
 
     auto sdim   = static_cast<int> (dim);
 
@@ -169,8 +225,6 @@ namespace
       }
     }
 
-    set.resize (width*dim);
-
     return set;
   }
 
@@ -202,7 +256,7 @@ int main (int argc, char const * argv[])
   auto file = std::fopen ("mandelbrot_avx.pbm", "wb");
 
   std::fprintf (file, "P4\n%d %d\n", dim, dim);
-  std::fwrite (&set.front (), 1, set.size (), file);
+  std::fwrite (set->bits (), 1, set->sz, file);
 
   std::fclose (file);
 
