@@ -3,8 +3,9 @@
 **Source code: https://github.com/mrange/benchmarksgame/tree/master/src/mandelbrot**
 
 **Update 2017-06-25 - Decided I could do a bit better with F# so I added an improved F# program that uses the .NET SSE**
+**Update 2017-07-01 - Reduced the overhead of bitmap allocation saving 9ms for 16000x16000 bitmaps**
 
-Recently I discovered [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/) which intrigued me, especially the [mandelbrot version](http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html).
+Recently I discovered [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/) which intrigued me, especially the [mandelbrot version](http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html).
 
 The mandelbrot set is computed by determining if repeated applications of `Z' = Z^2 + C` tends towards infinity or not.
 
@@ -593,7 +594,7 @@ What are the results?
 | C++ (reference)   | 22s   | -20x    |
 | C++ (AVX)         | 790ms | 1.4x    |
 | C++ (unroll)      | 520ms | 2.2x    |
-| C++ (32 pixels)   | 290ms | 3.9x    |
+| C++ (32 pixels)   | 281ms | 4.0x    |
 
 We finally landed where we wanted, by using floats and AVX we sped up `mandelbrot_6` 4 times.
 
@@ -803,7 +804,7 @@ It's very far from being idiomatic F# but is it fast?
 | C++ (reference)   | 22s   | -20x    |
 | C++ (AVX)         | 790ms | 1.4x    |
 | C++ (unroll)      | 520ms | 2.2x    |
-| C++ (32 pixels)   | 290ms | 3.9x    |
+| C++ (32 pixels)   | 281ms | 4.0x    |
 | F# (SSE)          | 890ms | 1.3x    |
 
 The updated F# code is actually 30% faster than `mandelbrot_6` but before we break out the champagne this program uses single precision floats in order to process 4 pixels per instruction where `mandelbrot_6` uses double precision. Still not too shabby and about 30x faster than the reference F# mandelbrot generator.
