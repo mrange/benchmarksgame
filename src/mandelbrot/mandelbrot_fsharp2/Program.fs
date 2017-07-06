@@ -38,7 +38,7 @@ open System.Threading.Tasks
 
 type Mandelbrot =
   class
-    
+
     static member inline step x y cx cy =
       let inline ( * ) x y = (x : Vector<float32>)*y
       let inline ( + ) x y = (x : Vector<float32>)+y
@@ -105,10 +105,11 @@ type Mandelbrot =
 
           let inline cmp (r : Vector<float32>) i =
             r.[i] < 4.F
+            // EXPERIMENTAL: Inline ILAsm
             //let f = r.[i]
             //(# "clt" f 4.F : byte #)
 
-          let c = 
+          let c =
                cmp r2_1 0
             || cmp r2_1 1
             || cmp r2_1 2
@@ -135,13 +136,12 @@ type Mandelbrot =
           let r2_2 = x2_2 + y2_2
 
           let inline bit (r : Vector<float32>) i s =
-            let f = r.[i]
-            let c = (# "clt" f 4.F : byte #)
-            (# "shl" c s : byte #)
-(*
-            if    r.[i] < 4.F then b
+            // EXPERIMENTAL: Inline ILAsm
+            //let f = r.[i]
+            //let c = (# "clt" f 4.F : byte #)
+            //(# "shl" c s : byte #)
+            if    r.[i] < 4.F then (1uy <<< s)
             else  0uy
-*)
 
           let r =
                 bit r2_1 0 7
@@ -154,7 +154,7 @@ type Mandelbrot =
             ||| bit r2_2 3 0
 
           r
-      
+
       loop 6 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
   end
 
