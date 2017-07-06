@@ -2,8 +2,9 @@
 
 **Source code: https://github.com/mrange/benchmarksgame/tree/master/src/mandelbrot**
 
-**Update 2017-06-25 - Decided I could do a bit better with F# so I added an improved F# program that uses the .NET SSE**
-**Update 2017-07-01 - Reduced the overhead of bitmap allocation saving 9ms for 16000x16000 bitmaps**
+1. **Update 2017-06-25** - Decided I could do a bit better with F# so I added an improved F# program that uses the .NET SSE
+1. **Update 2017-07-01** - Reduced the overhead of bitmap allocation saving 9ms for 16000x16000 bitmaps
+1. **Update 2017-07-06** - Improved the fast F# program by removing overy redundancy
 
 Recently I discovered [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/) which intrigued me, especially the [mandelbrot version](http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html).
 
