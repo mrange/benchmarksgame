@@ -7,6 +7,8 @@
 
 Recently I discovered [The Computer Language Benchmarks Game](http://benchmarksgame.alioth.debian.org/) which intrigued me, especially the [mandelbrot version](http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html).
 
+[![The mandelbrot set](https://img.youtube.com/vi/Ujvy-DEA-UM/0.jpg)](https://www.youtube.com/watch?v=Ujvy-DEA-UM)
+
 The mandelbrot set is computed by determining if repeated applications of `Z' = Z^2 + C` tends towards infinity or not.
 
 `Z` is a complex number which can be thought of a 2D coordinate. In order to visualize the mandelbrot set each pixel in an image can be mapped to complex number `Z` and for each pixel we do the infinity test. If the series tend to infinity we color the pixel white, black otherwise.
@@ -605,194 +607,128 @@ We finally landed where we wanted, by using floats and AVX we sped up `mandelbro
 Here is the updated F# mandelbrot infinity test.
 
 ```fsharp
-  // The mandelbrot equation: Z' = Z^2 + C
-let mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
-  let inline ( * ) x y = (x : Vector<float32>)*y
-  let inline ( + ) x y = (x : Vector<float32>)+y
+// The mandelbrot equation: Z' = Z^2 + C
+type Mandelbrot =
+  class
 
-  let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
-    let zero          = Vector<float32>.Zero
+    static member inline step x y cx cy =
+      let inline ( * ) x y = (x : Vector<float32>)*y
+      let inline ( + ) x y = (x : Vector<float32>)+y
 
-    let mutable x_1   = x_1
-    let mutable y_1   = y_1
-    let mutable x_2   = x_2
-    let mutable y_2   = y_2
+      let xy = x * y
+      let x2 = x * x
+      let y2 = y * y
+      let yy = xy + xy + cy
+      let xx = x2 - y2 + cx
 
-    let mutable xy_1  = zero
-    let mutable x2_1  = zero
-    let mutable y2_1  = zero
-    let mutable xy_2  = zero
-    let mutable x2_2  = zero
-    let mutable y2_2  = zero
+      xx, yy
 
-    if rem > 0 then
-      // #0
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+    static member inline step2 x y cx cy =
+      let inline ( * ) x y = (x : Vector<float32>)*y
+      let inline ( + ) x y = (x : Vector<float32>)+y
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+      let xy = x * y
+      let x2 = x * x
+      let y2 = y * y
+      let yy = xy + xy + cy
+      let xx = x2 - y2 + cx
 
-      // #1
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+      xx, yy, x2, y2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+    // The mandelbrot equation: Z' = Z^2 + C
+    static member mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
+      let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
 
-      // #2
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+        if rem > 0 then
+          // #0
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+          // #1
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      // #3
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+          // #2
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+          // #3
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      // #4
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+          // #4
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+          // #5
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      // #5
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+          // #6
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+          // #7
+          let x_1, y_1, x2_1, y2_1 = Mandelbrot.step2 x_1 y_1 cx_1 cy_1
+          let x_2, y_2, x2_2, y2_2 = Mandelbrot.step2 x_2 y_2 cx_2 cy_2
 
-      // #6
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+          let r2_1 = x2_1 + y2_1
+          let r2_2 = x2_2 + y2_2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+          let inline cmp (r : Vector<float32>) i =
+            r.[i] < 4.F
+            // EXPERIMENTAL: Inline ILAsm
+            //let f = r.[i]
+            //(# "clt" f 4.F : byte #)
 
-      // #7
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+          let c =
+               cmp r2_1 0
+            || cmp r2_1 1
+            || cmp r2_1 2
+            || cmp r2_1 3
+            || cmp r2_2 0
+            || cmp r2_2 1
+            || cmp r2_2 2
+            || cmp r2_2 3
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
-
-      let r2_1 = x2_1 + y2_1
-      let r2_2 = x2_2 + y2_2
-
-      if
-            r2_1.[0] < 4.F
-        ||  r2_1.[1] < 4.F
-        ||  r2_1.[2] < 4.F
-        ||  r2_1.[3] < 4.F
-        ||  r2_2.[0] < 4.F
-        ||  r2_2.[1] < 4.F
-        ||  r2_2.[2] < 4.F
-        ||  r2_2.[3] < 4.F
-        then
-          loop (rem - 1) x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2
+          if c then
+              loop (rem - 1) x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2
+            else
+              0uy
         else
-          0uy
-    else
-      // #48
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+          // #48
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+          // #49
+          let x_1, y_1, x2_1, y2_1 = Mandelbrot.step2 x_1 y_1 cx_1 cy_1
+          let x_2, y_2, x2_2, y2_2 = Mandelbrot.step2 x_2 y_2 cx_2 cy_2
 
-      // #49
-      xy_1     <- x_1 * y_1
-      x2_1     <- x_1 * x_1
-      y2_1     <- y_1 * y_1
-      y_1      <- xy_1 + xy_1 + cy_1
-      x_1      <- x2_1 - y2_1 + cx_1
+          let r2_1 = x2_1 + y2_1
+          let r2_2 = x2_2 + y2_2
 
-      xy_2     <- x_2 * y_2
-      x2_2     <- x_2 * x_2
-      y2_2     <- y_2 * y_2
-      y_2      <- xy_2 + xy_2 + cy_2
-      x_2      <- x2_2 - y2_2 + cx_2
+          let inline bit (r : Vector<float32>) i s =
+            // EXPERIMENTAL: Inline ILAsm
+            //let f = r.[i]
+            //let c = (# "clt" f 4.F : byte #)
+            //(# "shl" c s : byte #)
+            if    r.[i] < 4.F then (1uy <<< s)
+            else  0uy
 
-      let r2_1 = x2_1 + y2_1
-      let r2_2 = x2_2 + y2_2
+          let r =
+                bit r2_1 0 7
+            ||| bit r2_1 1 6
+            ||| bit r2_1 2 5
+            ||| bit r2_1 3 4
+            ||| bit r2_2 0 3
+            ||| bit r2_2 1 2
+            ||| bit r2_2 2 1
+            ||| bit r2_2 3 0
 
-      let inline bit (r : Vector<float32>) i b =
-        if    r.[i] < 4.F then b
-        else  0uy
+          r
 
-      let r =
-            bit r2_1 0 0x80uy
-        ||| bit r2_1 1 0x40uy
-        ||| bit r2_1 2 0x20uy
-        ||| bit r2_1 3 0x10uy
-        ||| bit r2_2 0 0x08uy
-        ||| bit r2_2 1 0x04uy
-        ||| bit r2_2 2 0x02uy
-        ||| bit r2_2 3 0x01uy
-
-      r
-
-  loop 6 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
+      loop 6 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
+  end
 ```
 
 It's very far from being idiomatic F# but is it fast?
