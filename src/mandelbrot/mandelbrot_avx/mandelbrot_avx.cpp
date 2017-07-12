@@ -16,7 +16,7 @@
 
 // g++ -g --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mavx -fopenmp mandelbrot_avx.cpp
 
-# include "stdafx.h"
+#include "stdafx.h"
 
 #include <cassert>
 #include <cstddef>
@@ -243,7 +243,7 @@ namespace
       for (auto w = 0U; w < width; ++w)
       {
         auto x    = w*8;
-        auto x_8  = _mm256_set1_ps(x);
+        auto x_8  = _mm256_set1_ps (x);
         auto cx0  = _mm256_add_ps (min_x_8, _mm256_mul_ps (_mm256_add_ps (x_8, shift_x_8), scale_x_8));
         __m256 cx[] = { cx0, cx0, cx0, cx0 };
         __m256 cy[] = { cy0, cy1, cy2, cy3 };

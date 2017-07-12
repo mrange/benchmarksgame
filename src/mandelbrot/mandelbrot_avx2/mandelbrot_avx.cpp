@@ -16,14 +16,13 @@
 
 // g++ -g --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mavx -fopenmp mandelbrot_avx.cpp
 
-# include "stdafx.h"
+#include "stdafx.h"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <chrono>
 #include <memory>
-#include <vector>
 #include <tuple>
 
 #include <emmintrin.h>
@@ -183,41 +182,35 @@ namespace
 
   bitmap::uptr compute_set (std::size_t const dim)
   {
-    auto set    = create_bitmap (dim, dim);
-    auto width  = set->w;
-    auto pset   = set->bits ();
+    auto set        = create_bitmap (dim, dim);
+    auto width      = set->w;
+    auto pset       = set->bits ();
 
-    auto sdim   = static_cast<int> (dim);
+    auto sdim       = static_cast<int> (dim);
 
-    auto scalex = (max_x - min_x) / dim;
-    auto scaley = (max_y - min_y) / dim;
+    auto scale_x    = (max_x - min_x) / dim;
+    auto scale_y    = (max_y - min_y) / dim;
 
-    std::vector<__m256d> cxs;
-
-    cxs.reserve (2*width);
-    for (auto i = 0; i < 2*width; ++i)
-    {
-      cxs.push_back (_mm256_set_pd (
-          min_x + (4*i + 0)*scalex
-        , min_x + (4*i + 1)*scalex
-        , min_x + (4*i + 2)*scalex
-        , min_x + (4*i + 3)*scalex
-        ));
-    }
+    auto min_x_4    = _mm256_set1_pd (min_x);
+    auto scale_x_4  = _mm256_set1_pd (scale_x);
+    auto lshift_x_4 = _mm256_set_pd (0, 1, 2, 3);
+    auto ushift_x_4 = _mm256_set_pd (4, 5, 6, 7);
 
     #pragma omp parallel for schedule(guided)
     for (auto sy = 0; sy < sdim; sy += 2)
     {
       auto y      = static_cast<std::size_t> (sy);
 
-      auto cy0    = _mm256_set1_pd (scaley*y       + min_y);
-      auto cy1    = _mm256_set1_pd (scaley*(y + 1) + min_y);
+      auto cy0    = _mm256_set1_pd (scale_y*y       + min_y);
+      auto cy1    = _mm256_set1_pd (scale_y*(y + 1) + min_y);
 
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
-        auto cx0  = cxs[w*2];
-        auto cx1  = cxs[w*2 + 1];
+        auto x    = w*8;
+        auto x_8  = _mm256_set1_pd (x);
+        auto cx0  = _mm256_add_pd (min_x_4, _mm256_mul_pd (_mm256_add_pd (x_8, lshift_x_4), scale_x_4));
+        auto cx1  = _mm256_add_pd (min_x_4, _mm256_mul_pd (_mm256_add_pd (x_8, ushift_x_4), scale_x_4));
         __m256d cx[4] { cx0, cx1, cx0, cx1 };
         __m256d cy[4] { cy0, cy0, cy1, cy1 };
         auto bits = mandelbrot_avx (cx, cy);
