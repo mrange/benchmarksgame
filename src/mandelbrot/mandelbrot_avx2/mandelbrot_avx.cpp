@@ -210,13 +210,14 @@ namespace
     {
       auto y      = static_cast<std::size_t> (sy);
 
+      auto cy0    = _mm256_set1_pd (scaley*y       + min_y);
+      auto cy1    = _mm256_set1_pd (scaley*(y + 1) + min_y);
+
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
         auto cx0  = cxs[w*2];
         auto cx1  = cxs[w*2 + 1];
-        auto cy0  = _mm256_set1_pd (scaley*y        + min_y);
-        auto cy1  = _mm256_set1_pd (scaley*(y + 1)  + min_y);
         __m256d cx[4] { cx0, cx1, cx0, cx1 };
         __m256d cy[4] { cy0, cy0, cy1, cy1 };
         auto bits = mandelbrot_avx (cx, cy);
