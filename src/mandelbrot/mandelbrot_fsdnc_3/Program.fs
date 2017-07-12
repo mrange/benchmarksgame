@@ -1,4 +1,4 @@
-﻿(* The Computer Language Benchmarks Game
+(* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
 
    Adapted by Antti Lankila from the earlier Isaac Gouy's implementation
