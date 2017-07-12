@@ -66,7 +66,7 @@ type Mandelbrot =
       xx, yy, x2, y2
 
     // The mandelbrot equation: Z' = Z^2 + C
-    static member mandelbrot (cx : float32) (cy : float32) (incxs : Vec2 []) (incys : Vec2 []) : uint16 =
+    static member mandelbrot cx_0 cy_0 cx_1 cy_1 cx_2 cy_2 cx_3 cy_3 : uint16 =
       let rec loop rem x_0 y_0 cx_0 cy_0 x_1 y_1 cx_1 cy_1 x_2 y_2 cx_2 cy_2 x_3 y_3 cx_3 cy_3 =
 
         if rem > 0 then
@@ -124,7 +124,7 @@ type Mandelbrot =
           let r2_3 = x2_3 + y2_3
 
           let inline cmp (r : Vec2) i =
-            r.[i] < 4.F
+            r.[i] <= 4.F
             // EXPERIMENTAL: Inline ILAsm
             //let f = r.[i]
             //(# "clt" f 4.F : byte #)
@@ -174,7 +174,7 @@ type Mandelbrot =
             //let f = r.[i]
             //let c = (# "clt" f 4.F : byte #)
             //(# "shl" c s : byte #)
-            if    r.[i] < 4.F then (1us <<< s)
+            if    r.[i] <= 4.F then (1us <<< s)
             else  0us
 
           let r =
@@ -197,64 +197,54 @@ type Mandelbrot =
 
           r
 
-      let cx   = Vec2 cx
-      let cy   = Vec2 cy
-
-      let cx_0 = cx + incxs.[0]
-      let cy_0 = cy + incys.[0]
-      let cx_1 = cx + incxs.[1]
-      let cy_1 = cy_0
-      let cx_2 = cx_0
-      let cy_2 = cy + incys.[1]
-      let cx_3 = cx_1
-      let cy_3 = cy_2
-
       loop 6 cx_0 cy_0 cx_0 cy_0 cx_1 cy_1 cx_1 cy_1 cx_2 cy_2 cx_2 cy_2 cx_3 cy_3 cx_3 cy_3
   end
 
 [<EntryPoint>]
 let main argv =
   // Argument is the desired x/y size of the set
-  let dim     =
+  let dim       =
     let dim = if argv.Length > 0 then int argv.[0] else 200
     max dim 200
-  let dimf    = float32 dim
-  let width   = (dim + 7) / 8
+  let dimf      = float32 dim
+  let width     = (dim + 7) / 8
 
   // What part of the mandelbrot set is rendered
-  let minX    = -1.5F
-  let minY    = -1.0F
-  let maxX    =  0.5F
-  let maxY    =  1.0F
+  let minX      = -1.5F
+  let minY      = -1.0F
+  let maxX      =  0.5F
+  let maxY      =  1.0F
   // More iterations means a more accurate visualization of the mandelbrot set
-  let maxIter =  50
+  let maxIter   =  50
 
-  let scalex  = (maxX - minX) / dimf;
-  let scaley  = (maxY - minY) / dimf;
+  let scaleX    = (maxX - minX) / dimf;
+  let scaleY    = (maxY - minY) / dimf;
 
-  let pixels  = Array.zeroCreate (width*dim)
+  let pixels    = Array.zeroCreate (width*dim)
+
+  let minX4     = Vec2 minX
+  let scaleX4   = Vec2 scaleX
+  let lshiftX4  = Vec2 [|0.F; 1.F; 2.F; 3.F|]
+  let ushiftX4  = Vec2 [|4.F; 5.F; 6.F; 7.F|]
 
   let incxs   =
     [|
-        Vec2 [|0.F * scalex; 1.F * scalex; 2.F * scalex; 3.F * scalex|]
-        Vec2 [|4.F * scalex; 5.F * scalex; 6.F * scalex; 7.F * scalex|]
-    |]
-
-  let incys   =
-    [|
-        Vec2 0.F
-        Vec2 scaley
+        Vec2 [|0.F * scaleX; 1.F * scaleX; 2.F * scaleX; 3.F * scaleX|]
+        Vec2 [|4.F * scaleX; 5.F * scaleX; 6.F * scaleX; 7.F * scaleX|]
     |]
 
   let mandelbrotSet () =
     Parallel.For (0, dim / 2, fun hy ->
       let y       = hy*2
       let yoffset = y*width
+      let cy_0    = Vec2 (scaleY*(float32 (y    )) + minY)
+      let cy_1    = Vec2 (scaleY*(float32 (y + 1)) + minY)
       for w = 0 to (width - 1) do
         let x     = w*8
-        let cx    = scalex*(float32 x) + minX
-        let cy    = scaley*(float32 y) + minY
-        let bits  = Mandelbrot.mandelbrot cx cy incxs incys
+        let x4    = Vec2 (float32 x)
+        let cx_0  = minX4 + (x4 + lshiftX4)*scaleX4
+        let cx_1  = minX4 + (x4 + ushiftX4)*scaleX4
+        let bits  = Mandelbrot.mandelbrot cx_0 cy_0 cx_1 cy_0 cx_0 cy_1 cx_1 cy_1
         pixels.[yoffset         + w] <- byte (bits >>> 8)
         pixels.[yoffset + width + w] <- byte (bits      )
       )
