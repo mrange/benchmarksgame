@@ -23,7 +23,6 @@
 #include <cstdio>
 #include <chrono>
 #include <memory>
-#include <vector>
 #include <tuple>
 
 #include <emmintrin.h>
@@ -215,28 +214,18 @@ namespace
 
   bitmap::uptr compute_set (std::size_t const dim)
   {
-    auto set    = create_bitmap (dim, dim);
-    auto width  = set->w;
-    auto pset   = set->bits ();
+    auto set      = create_bitmap (dim, dim);
+    auto width    = set->w;
+    auto pset     = set->bits ();
 
-    auto sdim   = static_cast<int> (dim);
+    auto sdim     = static_cast<int> (dim);
 
-    auto scale_x= (max_x - min_x) / dim;
-    auto scale_y= (max_y - min_y) / dim;
+    auto scale_x  = (max_x - min_x) / dim;
+    auto scale_y  = (max_y - min_y) / dim;
 
-    std::vector<__m256> cxs;
-
-    cxs.reserve (width);
-
-    auto min_x_   = _mm256_set1_ps (min_x);
-    auto scale_x_ = _mm256_set1_ps (scale_x);
-    auto shift_   = _mm256_set_ps (0, 1, 2, 3, 4, 5, 6, 7);
-    for (auto i = 0; i < 2*width; ++i)
-    {
-      auto multiplier = _mm256_set1_ps(8*i);
-      auto cx = _mm256_add_ps (min_x_, _mm256_mul_ps (_mm256_add_ps (multiplier, shift_), scale_x_));
-      cxs.push_back (cx);
-    }
+    auto min_x_8  = _mm256_set1_ps (min_x);
+    auto scale_x_8= _mm256_set1_ps (scale_x);
+    auto shift_x_8= _mm256_set_ps (0, 1, 2, 3, 4, 5, 6, 7);
 
     #pragma omp parallel for schedule(guided)
     for (auto sy = 0; sy < sdim; sy += 4)
@@ -253,7 +242,9 @@ namespace
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
-        auto cx0    = cxs[w];
+        auto x    = w*8;
+        auto x_8  = _mm256_set1_ps(x);
+        auto cx0  = _mm256_add_ps (min_x_8, _mm256_mul_ps (_mm256_add_ps (x_8, shift_x_8), scale_x_8));
         __m256 cx[] = { cx0, cx0, cx0, cx0 };
         __m256 cy[] = { cy0, cy1, cy2, cy3 };
         auto bits2  =
