@@ -131,10 +131,10 @@ namespace
 
 #define MANDEL_CMPMASK()  \
         cmp_mask      =   \
-            (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[0], y2[0]), _mm256_set1_pd (4.0), _CMP_LT_OQ)) << 4 )  \
-          | (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[1], y2[1]), _mm256_set1_pd (4.0), _CMP_LT_OQ))      )  \
-          | (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[2], y2[2]), _mm256_set1_pd (4.0), _CMP_LT_OQ)) << 12)  \
-          | (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[3], y2[3]), _mm256_set1_pd (4.0), _CMP_LT_OQ)) << 8 )
+            (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[0], y2[0]), _mm256_set1_pd (4.0), _CMP_LE_OQ)) << 4 )  \
+          | (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[1], y2[1]), _mm256_set1_pd (4.0), _CMP_LE_OQ))      )  \
+          | (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[2], y2[2]), _mm256_set1_pd (4.0), _CMP_LE_OQ)) << 12)  \
+          | (_mm256_movemask_pd (_mm256_cmp_pd (_mm256_add_pd (x2[3], y2[3]), _mm256_set1_pd (4.0), _CMP_LE_OQ)) << 8 )
 
   MANDEL_INLINE int mandelbrot_avx (__m256d cx[4], __m256d cy[4])
   {
@@ -169,7 +169,7 @@ namespace
 
       --iter;
 
-    } while (iter && cmp_mask);
+    } while (iter);
 
     // Last 2 steps
     MANDEL_ITERATION();
