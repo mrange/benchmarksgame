@@ -16,6 +16,24 @@ let mutable data : byte array array = null
 let mutable nbyte_each_line : int array = null
 let current_line = ref -1
 
+let clock =
+  let sw = System.Diagnostics.Stopwatch ()
+  sw.Start ()
+  fun () -> sw.ElapsedMilliseconds
+
+let timeIt a =
+  System.GC.Collect (2, System.GCCollectionMode.Forced, true)
+
+  let inline cc g       = System.GC.CollectionCount g
+  let bcc0, bcc1, bcc2  = cc 0, cc 1, cc 2
+  let before            = clock ()
+
+  let r                 = a ()
+
+  let after             = clock ()
+  let acc0, acc1, acc2  = cc 0, cc 1, cc 2
+
+  after - before, acc0 - bcc0, acc1 - bcc1, acc2 - bcc2, r
 
 let Calculate() =
     let inverse_n = 2.0 / float N
@@ -70,14 +88,9 @@ let Calculate() =
         nbyte_each_line.[y] <- byte_count
         y <- Interlocked.Increment(&current_line.contents)
 
-
-[<EntryPoint>]
-let main args =
-    if args.Length > 0 then
-        N <- int args.[0]
-
+let Mandelbrot () =
 //    let out = Console.OpenStandardOutput()
-    use out = System.IO.File.OpenWrite "gg.pbm"
+    use out = System.IO.File.OpenWrite "fsdnc_3.pbm"
 
     let header = sprintf "P4\n%d %d\n" N N |> System.Text.Encoding.ASCII.GetBytes
     out.Write (header, 0, header.Length)
@@ -99,4 +112,14 @@ let main args =
 
     for y in 0..N-1 do
         out.Write(data.[y], 0, nbyte_each_line.[y])
+
+[<EntryPoint>]
+let main args =
+    if args.Length > 0 then
+        N <- int args.[0]
+
+    printfn "Running ..."
+    let ms, cc0, cc1, cc2, _ = timeIt Mandelbrot
+    printfn "  it took %d ms with (%d, %d, %d) GC" ms cc0 cc1 cc2
+
     0
