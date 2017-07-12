@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <chrono>
 #include <memory>
+#include <vector>
 #include <tuple>
 
 #include <emmintrin.h>
@@ -188,37 +189,36 @@ namespace
 
     auto sdim   = static_cast<int> (dim);
 
+    auto scalex = (max_x - min_x) / dim;
+    auto scaley = (max_y - min_y) / dim;
+
+    std::vector<__m256d> cxs;
+
+    cxs.reserve (2*width);
+    for (auto i = 0; i < 2*width; ++i)
+    {
+      cxs.push_back (_mm256_set_pd (
+          min_x + (4*i + 0)*scalex
+        , min_x + (4*i + 1)*scalex
+        , min_x + (4*i + 2)*scalex
+        , min_x + (4*i + 3)*scalex
+        )); 
+    }
+
     #pragma omp parallel for schedule(guided)
     for (auto sy = 0; sy < sdim; sy += 2)
     {
       auto y      = static_cast<std::size_t> (sy);
-      auto scalex = (max_x - min_x) / dim;
-      auto scaley = (max_y - min_y) / dim;
-
-      auto incx1  = _mm256_set_pd (
-          0*scalex
-        , 1*scalex
-        , 2*scalex
-        , 3*scalex
-        );
-
-      auto incx2  = _mm256_set_pd (
-          4*scalex
-        , 5*scalex
-        , 6*scalex
-        , 7*scalex
-        );
 
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
-        auto x    = w*8;
-        auto cx1  = _mm256_add_pd (_mm256_set1_pd (scalex*x + min_x), incx1);
-        auto cx2  = _mm256_add_pd (_mm256_set1_pd (scalex*x + min_x), incx2);
-        auto cy1  = _mm256_set1_pd (scaley*y + min_y);
-        auto cy2  = _mm256_set1_pd (scaley*y + min_y + scaley);
-        __m256d cx[4] { cx1, cx2, cx1, cx2 };
-        __m256d cy[4] { cy1, cy1, cy2, cy2 };
+        auto cx0  = cxs[w*2];
+        auto cx1  = cxs[w*2 + 1];
+        auto cy0  = _mm256_set1_pd (scaley*y        + min_y);
+        auto cy1  = _mm256_set1_pd (scaley*(y + 1)  + min_y);
+        __m256d cx[4] { cx0, cx1, cx0, cx1 };
+        __m256d cy[4] { cy0, cy0, cy1, cy1 };
         auto bits = mandelbrot_avx (cx, cy);
         pset[yoffset          + w] = 0xFF & (bits     );
         pset[yoffset + width  + w] = 0xFF & (bits >> 8);
