@@ -89,11 +89,11 @@ let Calculate() =
         y <- Interlocked.Increment(&current_line.contents)
 
 let Mandelbrot () =
-//    let out = Console.OpenStandardOutput()
-    use out = System.IO.File.OpenWrite "fsdnc_3.pbm"
-
-    let header = sprintf "P4\n%d %d\n" N N |> System.Text.Encoding.ASCII.GetBytes
-    out.Write (header, 0, header.Length)
+//    let fs = Console.OpenStandardOutput()
+    use fs = System.IO.File.Create "mandelbrot_fsharp2.pbm"
+    use ss = new System.IO.StreamWriter (fs)
+    ss.Write (sprintf "P4\n%d %d\n" N N)
+    ss.Flush ()
 
     width_bytes <- N / 8
     if width_bytes * 8 < N then
@@ -111,7 +111,7 @@ let Mandelbrot () =
     for thread in threads do thread.Join()
 
     for y in 0..N-1 do
-        out.Write(data.[y], 0, nbyte_each_line.[y])
+        fs.Write(data.[y], 0, nbyte_each_line.[y])
 
 [<EntryPoint>]
 let main args =
