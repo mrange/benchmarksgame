@@ -36,12 +36,14 @@ let timeIt a =
 open System.Numerics
 open System.Threading.Tasks
 
+type Vec2 = Vector<float>
+
 type Mandelbrot =
   class
 
     static member inline step x y cx cy =
-      let inline ( * ) x y = (x : Vector<float32>)*y
-      let inline ( + ) x y = (x : Vector<float32>)+y
+      let inline ( * ) x y = (x : Vec2)*y
+      let inline ( + ) x y = (x : Vec2)+y
 
       let xy = x * y
       let x2 = x * x
@@ -52,8 +54,8 @@ type Mandelbrot =
       xx, yy
 
     static member inline step2 x y cx cy =
-      let inline ( * ) x y = (x : Vector<float32>)*y
-      let inline ( + ) x y = (x : Vector<float32>)+y
+      let inline ( * ) x y = (x : Vec2)*y
+      let inline ( + ) x y = (x : Vec2)+y
 
       let xy = x * y
       let x2 = x * x
@@ -64,98 +66,133 @@ type Mandelbrot =
       xx, yy, x2, y2
 
     // The mandelbrot equation: Z' = Z^2 + C
-    static member mandelbrot (cx_1 : Vector<float32>) (cy_1 : Vector<float32>) (cx_2 : Vector<float32>) (cy_2 : Vector<float32>) : byte =
-      let rec loop rem x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2 =
+    static member mandelbrot (cx : float) (cy : float) (incxs : Vec2 []) : byte =
+      let rec loop rem x_0 y_0 cx_0 x_1 y_1 cx_1 x_2 y_2 cx_2 x_3 y_3 cx_3 cy =
 
         if rem > 0 then
           // #0
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #1
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #2
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #3
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #4
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #5
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #6
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #7
-          let x_1, y_1, x2_1, y2_1 = Mandelbrot.step2 x_1 y_1 cx_1 cy_1
-          let x_2, y_2, x2_2, y2_2 = Mandelbrot.step2 x_2 y_2 cx_2 cy_2
+          let x_0, y_0, x2_0, y2_0 = Mandelbrot.step2 x_0 y_0 cx_0 cy
+          let x_1, y_1, x2_1, y2_1 = Mandelbrot.step2 x_1 y_1 cx_1 cy
+          let x_2, y_2, x2_2, y2_2 = Mandelbrot.step2 x_2 y_2 cx_2 cy
+          let x_3, y_3, x2_3, y2_3 = Mandelbrot.step2 x_3 y_3 cx_3 cy
 
+          let r2_0 = x2_0 + y2_0
           let r2_1 = x2_1 + y2_1
           let r2_2 = x2_2 + y2_2
+          let r2_3 = x2_3 + y2_3
 
-          let inline cmp (r : Vector<float32>) i =
-            r.[i] < 4.F
+          let inline cmp (r : Vec2) i =
+            r.[i] < 4.
             // EXPERIMENTAL: Inline ILAsm
             //let f = r.[i]
             //(# "clt" f 4.F : byte #)
 
           let c =
-               cmp r2_1 0
+               cmp r2_0 0
+            || cmp r2_0 1
+            || cmp r2_1 0
             || cmp r2_1 1
-            || cmp r2_1 2
-            || cmp r2_1 3
             || cmp r2_2 0
             || cmp r2_2 1
-            || cmp r2_2 2
-            || cmp r2_2 3
+            || cmp r2_3 0
+            || cmp r2_3 1
 
           if c then
-              loop (rem - 1) x_1 y_1 x_2 y_2 cx_1 cy_1 cx_2 cy_2
+              loop (rem - 1) x_0 y_0 cx_0 x_1 y_1 cx_1 x_2 y_2 cx_2 x_3 y_3 cx_3 cy
             else
               0uy
         else
           // #48
-          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy_1
-          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy_2
+          let x_0, y_0 = Mandelbrot.step x_0 y_0 cx_0 cy
+          let x_1, y_1 = Mandelbrot.step x_1 y_1 cx_1 cy
+          let x_2, y_2 = Mandelbrot.step x_2 y_2 cx_2 cy
+          let x_3, y_3 = Mandelbrot.step x_3 y_3 cx_3 cy
 
           // #49
-          let x_1, y_1, x2_1, y2_1 = Mandelbrot.step2 x_1 y_1 cx_1 cy_1
-          let x_2, y_2, x2_2, y2_2 = Mandelbrot.step2 x_2 y_2 cx_2 cy_2
+          let x_0, y_0, x2_0, y2_0 = Mandelbrot.step2 x_0 y_0 cx_0 cy
+          let x_1, y_1, x2_1, y2_1 = Mandelbrot.step2 x_1 y_1 cx_1 cy
+          let x_2, y_2, x2_2, y2_2 = Mandelbrot.step2 x_2 y_2 cx_2 cy
+          let x_3, y_3, x2_3, y2_3 = Mandelbrot.step2 x_3 y_3 cx_3 cy
 
+          let r2_0 = x2_0 + y2_0
           let r2_1 = x2_1 + y2_1
           let r2_2 = x2_2 + y2_2
+          let r2_3 = x2_3 + y2_3
 
-          let inline bit (r : Vector<float32>) i s =
+          let inline bit (r : Vec2) i s =
             // EXPERIMENTAL: Inline ILAsm
             //let f = r.[i]
             //let c = (# "clt" f 4.F : byte #)
             //(# "shl" c s : byte #)
-            if    r.[i] < 4.F then (1uy <<< s)
+            if    r.[i] < 4. then (1uy <<< s)
             else  0uy
 
           let r =
-                bit r2_1 0 7
-            ||| bit r2_1 1 6
-            ||| bit r2_1 2 5
-            ||| bit r2_1 3 4
+                bit r2_0 0 7
+            ||| bit r2_0 1 6
+            ||| bit r2_1 0 5
+            ||| bit r2_1 1 4
             ||| bit r2_2 0 3
             ||| bit r2_2 1 2
-            ||| bit r2_2 2 1
-            ||| bit r2_2 3 0
+            ||| bit r2_3 0 1
+            ||| bit r2_3 1 0
 
           r
 
-      loop 6 cx_1 cy_1 cx_2 cy_2 cx_1 cy_1 cx_2 cy_2
+      let cx   = Vec2 cx
+      let cy   = Vec2 cy
+      let cx_0 = cx + incxs.[0]
+      let cx_1 = cx + incxs.[1]
+      let cx_2 = cx + incxs.[2]
+      let cx_3 = cx + incxs.[3]
+      let x_0  = cx_0
+      let x_1  = cx_1
+      let x_2  = cx_2
+      let x_3  = cx_3
+
+      loop 6 x_0 cy cx_0 x_1 cy cx_1 x_2 cy cx_2 x_3 cy cx_3 cy
   end
 
 [<EntryPoint>]
@@ -164,14 +201,14 @@ let main argv =
   let dim     =
     let dim = if argv.Length > 0 then int argv.[0] else 200
     max dim 200
-  let dimf    = float32 dim
+  let dimf    = float dim
   let width   = (dim + 7) / 8
 
   // What part of the mandelbrot set is rendered
-  let minX    = -1.5F
-  let minY    = -1.0F
-  let maxX    =  0.5F
-  let maxY    =  1.0F
+  let minX    = -1.5
+  let minY    = -1.0
+  let maxX    =  0.5
+  let maxY    =  1.0
   // More iterations means a more accurate visualization of the mandelbrot set
   let maxIter =  50
 
@@ -180,33 +217,22 @@ let main argv =
 
   let pixels  = Array.zeroCreate (width*dim)
 
-  let incx_1  =
+  let incxs   =
     [|
-      0.F * scalex
-      1.F * scalex
-      2.F * scalex
-      3.F * scalex
-    |] |> Vector<float32>
-  let incx_2  =
-    [|
-      4.F * scalex
-      5.F * scalex
-      6.F * scalex
-      7.F * scalex
-    |] |> Vector<float32>
+        Vec2 [|0. * scalex; 1. * scalex |]
+        Vec2 [|2. * scalex; 3. * scalex |]
+        Vec2 [|4. * scalex; 5. * scalex |]
+        Vec2 [|6. * scalex; 7. * scalex |]
+    |]
 
   let mandelbrotSet () =
     Parallel.For (0, dim, fun y ->
       let yoffset = y*width
       for w = 0 to (width - 1) do
         let x     = w*8
-        let cx    = scalex*(float32 x) + minX
-        let cy    = scaley*(float32 y) + minY
-        let cx_1  = Vector<float32> cx + incx_1
-        let cx_2  = Vector<float32> cx + incx_2
-        let cy_1  = Vector<float32> cy
-        let cy_2  = Vector<float32> cy
-        let bits  = Mandelbrot.mandelbrot cx_1 cy_1 cx_2 cy_2
+        let cx    = scalex*(float x) + minX
+        let cy    = scaley*(float y) + minY
+        let bits  = Mandelbrot.mandelbrot cx cy incxs
         pixels.[yoffset + w] <- bits
       )
 
@@ -217,7 +243,7 @@ let main argv =
   // Writes the pixels as PBM
   //  Can be viewed using: http://paulcuth.me.uk/netpbm-viewer/
   do
-    use fs = System.IO.File.Create "mandelbrot_fsharp2.pbm"
+    use fs = System.IO.File.Create "mandelbrot_fsdnc_4.pbm"
     use ss = new System.IO.StreamWriter (fs)
     ss.Write (sprintf "P4\n%d %d\n" dim dim)
     ss.Flush ()
