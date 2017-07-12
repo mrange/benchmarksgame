@@ -243,6 +243,7 @@ let main argv =
   // Writes the pixels as PBM
   //  Can be viewed using: http://paulcuth.me.uk/netpbm-viewer/
   do
+//    let fs = Console.OpenStandardOutput()
     use fs = System.IO.File.Create "mandelbrot_fsdnc_4.pbm"
     use ss = new System.IO.StreamWriter (fs)
     ss.Write (sprintf "P4\n%d %d\n" dim dim)
