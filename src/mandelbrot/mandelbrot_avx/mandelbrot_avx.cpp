@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <chrono>
 #include <memory>
+#include <vector>
 #include <tuple>
 
 #include <emmintrin.h>
@@ -220,38 +221,45 @@ namespace
 
     auto sdim   = static_cast<int> (dim);
 
+    auto scalex = (max_x - min_x) / dim;
+    auto scaley = (max_y - min_y) / dim;
+
+    std::vector<__m256> cxs;
+
+    cxs.reserve (width);
+    for (auto i = 0; i < 2*width; ++i)
+    {
+      cxs.push_back (_mm256_set_ps (
+          min_x + (8*i + 0)*scalex
+        , min_x + (8*i + 1)*scalex
+        , min_x + (8*i + 2)*scalex
+        , min_x + (8*i + 3)*scalex
+        , min_x + (8*i + 4)*scalex
+        , min_x + (8*i + 5)*scalex
+        , min_x + (8*i + 6)*scalex
+        , min_x + (8*i + 7)*scalex
+        ));
+    }
+
     #pragma omp parallel for schedule(guided)
     for (auto sy = 0; sy < sdim; sy += 4)
     {
       auto y      = static_cast<std::size_t> (sy);
-      auto scalex = (max_x - min_x) / dim;
-      auto scaley = (max_y - min_y) / dim;
 
-      auto incx   = _mm256_set_ps (
-          0*scalex
-        , 1*scalex
-        , 2*scalex
-        , 3*scalex
-        , 4*scalex
-        , 5*scalex
-        , 6*scalex
-        , 7*scalex
-        );
+      auto cy0    = _mm256_set1_ps (scaley*y + min_y);
+      auto cy1    = _mm256_add_ps  (cy0, _mm256_set1_ps (1*scaley));
+      auto cy2    = _mm256_add_ps  (cy0, _mm256_set1_ps (2*scaley));
+      auto cy3    = _mm256_add_ps  (cy0, _mm256_set1_ps (3*scaley));
 
       auto last_reached_full = false;
 
       auto yoffset = width*y;
       for (auto w = 0U; w < width; ++w)
       {
-        auto x      = w*8;
-        auto cx0    = _mm256_add_ps  (_mm256_set1_ps (scalex*x + min_x), incx);
-        auto cy0    = _mm256_set1_ps (scaley*y + min_y);
-        auto cy1    = _mm256_add_ps  (cy0, _mm256_set1_ps (1*scaley));
-        auto cy2    = _mm256_add_ps  (cy0, _mm256_set1_ps (2*scaley));
-        auto cy3    = _mm256_add_ps  (cy0, _mm256_set1_ps (3*scaley));
+        auto cx0    = cxs[w];
         __m256 cx[] = { cx0, cx0, cx0, cx0 };
         __m256 cy[] = { cy0, cy1, cy2, cy3 };
-        auto bits2  = 
+        auto bits2  =
           last_reached_full
             ? mandelbrot_avx_full (cx, cy)
             : mandelbrot_avx (cx, cy)

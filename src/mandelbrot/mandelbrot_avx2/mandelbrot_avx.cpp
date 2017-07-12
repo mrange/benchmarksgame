@@ -202,7 +202,7 @@ namespace
         , min_x + (4*i + 1)*scalex
         , min_x + (4*i + 2)*scalex
         , min_x + (4*i + 3)*scalex
-        )); 
+        ));
     }
 
     #pragma omp parallel for schedule(guided)
