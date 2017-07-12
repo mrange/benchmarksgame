@@ -221,24 +221,21 @@ namespace
 
     auto sdim   = static_cast<int> (dim);
 
-    auto scalex = (max_x - min_x) / dim;
-    auto scaley = (max_y - min_y) / dim;
+    auto scale_x= (max_x - min_x) / dim;
+    auto scale_y= (max_y - min_y) / dim;
 
     std::vector<__m256> cxs;
 
     cxs.reserve (width);
+
+    auto min_x_   = _mm256_set1_ps (min_x);
+    auto scale_x_ = _mm256_set1_ps (scale_x);
+    auto shift_   = _mm256_set_ps (0, 1, 2, 3, 4, 5, 6, 7);
     for (auto i = 0; i < 2*width; ++i)
     {
-      cxs.push_back (_mm256_set_ps (
-          min_x + (8*i + 0)*scalex
-        , min_x + (8*i + 1)*scalex
-        , min_x + (8*i + 2)*scalex
-        , min_x + (8*i + 3)*scalex
-        , min_x + (8*i + 4)*scalex
-        , min_x + (8*i + 5)*scalex
-        , min_x + (8*i + 6)*scalex
-        , min_x + (8*i + 7)*scalex
-        ));
+      auto multiplier = _mm256_set1_ps(8*i);
+      auto cx = _mm256_add_ps (min_x_, _mm256_mul_ps (_mm256_add_ps (multiplier, shift_), scale_x_));
+      cxs.push_back (cx);
     }
 
     #pragma omp parallel for schedule(guided)
@@ -246,10 +243,10 @@ namespace
     {
       auto y      = static_cast<std::size_t> (sy);
 
-      auto cy0    = _mm256_set1_ps (scaley*y + min_y);
-      auto cy1    = _mm256_add_ps  (cy0, _mm256_set1_ps (1*scaley));
-      auto cy2    = _mm256_add_ps  (cy0, _mm256_set1_ps (2*scaley));
-      auto cy3    = _mm256_add_ps  (cy0, _mm256_set1_ps (3*scaley));
+      auto cy0    = _mm256_set1_ps (scale_y*y + min_y);
+      auto cy1    = _mm256_add_ps  (cy0, _mm256_set1_ps (1*scale_y));
+      auto cy2    = _mm256_add_ps  (cy0, _mm256_set1_ps (2*scale_y));
+      auto cy3    = _mm256_add_ps  (cy0, _mm256_set1_ps (3*scale_y));
 
       auto last_reached_full = false;
 
