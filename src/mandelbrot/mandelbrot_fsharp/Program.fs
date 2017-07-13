@@ -42,7 +42,7 @@ let minY    = number -1.0
 let maxX    = number  0.5
 let maxY    = number  1.0
 // More iterations means a more accurate visualization of the mandelbrot set
-let maxIter =  50
+let maxIter = 50
 
 let _2      = number 2.0
 let _4      = number 4.0
@@ -65,7 +65,10 @@ let main argv =
     for y = 0 to (dim - 1) do
       let yoffset = y*width
       for w = 0 to (width - 1) do
-        let mutable bits = 0uy
+        // idx=1098/5 potentially problematic
+        let idx           = yoffset + w
+        let mutable bits  = 0uy
+
         for b = 0 to 7 do
           // The mandelbrot equation: Z' = Z^2 + C
           let rec mandelbrot rem x y cx cy =
@@ -82,7 +85,7 @@ let main argv =
             // If we ran out of time we assume the point belongs to the mandelbrot set
             bits    <- bits ||| (1uy <<< (7 - b))
 
-        pixels.[yoffset + w] <- bits
+        pixels.[idx] <- bits
 
   printfn "Generating mandelbrot set: %dx%d(%d)" dim dim maxIter
   let ms, cc0, cc1, cc2, _ = timeIt mandelbrotSet
