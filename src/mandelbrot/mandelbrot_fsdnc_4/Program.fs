@@ -36,14 +36,14 @@ let timeIt a =
 open System.Numerics
 open System.Threading.Tasks
 
-type Vec2 = Vector<float32>
+type SSEVector = Vector<float32>
 
 type Mandelbrot =
   class
 
     static member inline step x y cx cy =
-      let inline ( * ) x y = (x : Vec2)*y
-      let inline ( + ) x y = (x : Vec2)+y
+      let inline ( * ) x y = (x : SSEVector)*y
+      let inline ( + ) x y = (x : SSEVector)+y
 
       let xy = x * y
       let x2 = x * x
@@ -54,8 +54,8 @@ type Mandelbrot =
       xx, yy
 
     static member inline step2 x y cx cy =
-      let inline ( * ) x y = (x : Vec2)*y
-      let inline ( + ) x y = (x : Vec2)+y
+      let inline ( * ) x y = (x : SSEVector)*y
+      let inline ( + ) x y = (x : SSEVector)+y
 
       let xy = x * y
       let x2 = x * x
@@ -123,7 +123,7 @@ type Mandelbrot =
           let r2_2 = x2_2 + y2_2
           let r2_3 = x2_3 + y2_3
 
-          let inline cmp (r : Vec2) i =
+          let inline cmp (r : SSEVector) i =
             r.[i] <= 4.F
             // EXPERIMENTAL: Inline ILAsm
             //let f = r.[i]
@@ -169,7 +169,7 @@ type Mandelbrot =
           let r2_2 = x2_2 + y2_2
           let r2_3 = x2_3 + y2_3
 
-          let inline bit (r : Vec2) i s =
+          let inline bit (r : SSEVector) i s =
             // EXPERIMENTAL: Inline ILAsm
             //let f = r.[i]
             //let c = (# "clt" f 4.F : byte #)
@@ -222,26 +222,20 @@ let main argv =
 
   let pixels    = Array.zeroCreate (width*dim)
 
-  let minX4     = Vec2 minX
-  let scaleX4   = Vec2 scaleX
-  let lshiftX4  = Vec2 [|0.F; 1.F; 2.F; 3.F|]
-  let ushiftX4  = Vec2 [|4.F; 5.F; 6.F; 7.F|]
-
-  let incxs   =
-    [|
-        Vec2 [|0.F * scaleX; 1.F * scaleX; 2.F * scaleX; 3.F * scaleX|]
-        Vec2 [|4.F * scaleX; 5.F * scaleX; 6.F * scaleX; 7.F * scaleX|]
-    |]
+  let minX4     = SSEVector minX
+  let scaleX4   = SSEVector scaleX
+  let lshiftX4  = SSEVector [|0.F; 1.F; 2.F; 3.F|]
+  let ushiftX4  = SSEVector [|4.F; 5.F; 6.F; 7.F|]
 
   let mandelbrotSet () =
     Parallel.For (0, dim / 2, fun hy ->
       let y       = hy*2
       let yoffset = y*width
-      let cy_0    = Vec2 (scaleY*(float32 (y    )) + minY)
-      let cy_1    = Vec2 (scaleY*(float32 (y + 1)) + minY)
+      let cy_0    = SSEVector (scaleY*(float32 (y    )) + minY)
+      let cy_1    = SSEVector (scaleY*(float32 (y + 1)) + minY)
       for w = 0 to (width - 1) do
         let x     = w*8
-        let x4    = Vec2 (float32 x)
+        let x4    = SSEVector (float32 x)
         let cx_0  = minX4 + (x4 + lshiftX4)*scaleX4
         let cx_1  = minX4 + (x4 + ushiftX4)*scaleX4
         let bits  = Mandelbrot.mandelbrot cx_0 cy_0 cx_1 cy_0 cx_0 cy_1 cx_1 cy_1
