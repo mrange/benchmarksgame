@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.14
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mandelbrot_reference", "mandelbrot\mandelbrot_reference\mandelbrot_reference.vcxproj", "{FDB2E19B-C268-47EF-B0BE-98A15501C4D6}"
 EndProject
@@ -55,10 +55,10 @@ Global
 		{93BC4373-33D7-436E-8DA0-50959AB17B95}.Release|x86.Build.0 = Release|Win32
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x64.Build.0 = Debug|Any CPU
-		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x86.Build.0 = Debug|Any CPU
+		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x64.ActiveCfg = Debug|x64
+		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x64.Build.0 = Debug|x64
+		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x86.ActiveCfg = Debug|x86
+		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Debug|x86.Build.0 = Debug|x86
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5D6AEB41-9E21-401B-9770-6D9639CCA883}.Release|x64.ActiveCfg = Release|x64
