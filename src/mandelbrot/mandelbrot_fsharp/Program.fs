@@ -33,6 +33,19 @@ let timeIt a =
 
   after - before, acc0 - bcc0, acc1 - bcc1, acc2 - bcc2, r
 
+type Number         = float
+let inline number i = float i
+
+// What part of the mandelbrot set is rendered
+let minX    = number -1.5
+let minY    = number -1.0
+let maxX    = number  0.5
+let maxY    = number  1.0
+// More iterations means a more accurate visualization of the mandelbrot set
+let maxIter = 50
+
+let _2      = number 2.0
+let _4      = number 4.0
 
 [<EntryPoint>]
 let main argv =
@@ -40,16 +53,8 @@ let main argv =
   let dim     =
     let dim = if argv.Length > 0 then int argv.[0] else 200
     max dim 200
-  let dimf    = float dim
+  let dimf    = number dim
   let width   = (dim + 7) / 8
-
-  // What part of the mandelbrot set is rendered
-  let minX    = -1.5
-  let minY    = -1.0
-  let maxX    =  0.5
-  let maxY    =  1.0
-  // More iterations means a more accurate visualization of the mandelbrot set
-  let maxIter =  50
 
   let scalex  = (maxX - minX) / dimf;
   let scaley  = (maxY - minY) / dimf;
@@ -60,16 +65,19 @@ let main argv =
     for y = 0 to (dim - 1) do
       let yoffset = y*width
       for w = 0 to (width - 1) do
-        let mutable bits = 0uy
+        // idx=1098/5 potentially problematic
+        let idx           = yoffset + w
+        let mutable bits  = 0uy
+
         for b = 0 to 7 do
           // The mandelbrot equation: Z' = Z^2 + C
           let rec mandelbrot rem x y cx cy =
-            if rem <= 0 || (x*x + y*y > 4.) then rem
-            else mandelbrot (rem - 1) (x*x - y*y + cx)  (2.*x*y + cy) cx cy
+            if rem <= 0 || (x*x + y*y > _4) then rem
+            else mandelbrot (rem - 1) (x*x - y*y + cx)  (_2*x*y + cy) cx cy
 
           let x   = w*8 + b
-          let cx  = scalex*(float x) + minX
-          let cy  = scaley*(float y) + minY
+          let cx  = scalex*(number x) + minX
+          let cy  = scaley*(number y) + minY
 
           let rem = mandelbrot maxIter cx cy cx cy
 
@@ -77,7 +85,7 @@ let main argv =
             // If we ran out of time we assume the point belongs to the mandelbrot set
             bits    <- bits ||| (1uy <<< (7 - b))
 
-        pixels.[yoffset + w] <- bits
+        pixels.[idx] <- bits
 
   printfn "Generating mandelbrot set: %dx%d(%d)" dim dim maxIter
   let ms, cc0, cc1, cc2, _ = timeIt mandelbrotSet

@@ -16,7 +16,7 @@
 
 // g++ -g --std=c++14 -pipe -Wall -O3 -ffast-math -fno-finite-math-only -march=native -mavx -fopenmp mandelbrot_avx.cpp
 
-# include "stdafx.h"
+#include "stdafx.h"
 
 #include <cassert>
 #include <cstddef>
@@ -66,7 +66,7 @@ namespace
       , w   ((x + 7) / 8)
       , sz  (w*y)
     {
-      b = static_cast<std::uint8_t*> (malloc(sz));
+      b = static_cast<std::uint8_t*> (malloc (sz));
     }
 
     ~bitmap () noexcept
@@ -129,14 +129,24 @@ namespace
   MANDEL_DEPENDENT(3)
 
 #define MANDEL_CMP(i) \
-  _mm256_cmp_ps (_mm256_add_ps (x2[i], y2[i]), _mm256_set1_ps (4.0F), _CMP_LT_OQ)
+  _mm256_cmp_ps (_mm256_add_ps (x2[i], y2[i]), _mm256_set1_ps (4.0F), _CMP_LE_OQ)
 
-#define MANDEL_CMPMASK()  \
-        std::uint32_t cmp_mask =                        \
-            (_mm256_movemask_ps (MANDEL_CMP(0))      )  \
-          | (_mm256_movemask_ps (MANDEL_CMP(1)) << 8 )  \
-          | (_mm256_movemask_ps (MANDEL_CMP(2)) << 16)  \
-          | (_mm256_movemask_ps (MANDEL_CMP(3)) << 24)
+#define MANDEL_CMPMASK()                          \
+  std::uint32_t cmp_mask =                        \
+      (_mm256_movemask_ps (MANDEL_CMP(0))      )  \
+    | (_mm256_movemask_ps (MANDEL_CMP(1)) << 8 )  \
+    | (_mm256_movemask_ps (MANDEL_CMP(2)) << 16)  \
+    | (_mm256_movemask_ps (MANDEL_CMP(3)) << 24)
+
+#define MANDEL_CHECKINF()                         \
+  auto cont = _mm256_movemask_ps (_mm256_or_ps (  \
+      _mm256_or_ps (MANDEL_CMP(0), MANDEL_CMP(1)) \
+    , _mm256_or_ps (MANDEL_CMP(2), MANDEL_CMP(3)) \
+    ));                                           \
+  if (!cont)                                      \
+  {                                               \
+    return 0;                                     \
+  }
 
   MANDEL_INLINE int mandelbrot_avx (__m256 cx[4], __m256 cy[4])
   {
@@ -160,15 +170,7 @@ namespace
       MANDEL_ITERATION();
       MANDEL_ITERATION();
 
-      auto cont = _mm256_movemask_ps (_mm256_or_ps (
-          _mm256_or_ps (MANDEL_CMP(0), MANDEL_CMP(1))
-        , _mm256_or_ps (MANDEL_CMP(2), MANDEL_CMP(3))
-        ));
-
-      if (!cont)
-      {
-        return 0;
-      }
+      MANDEL_CHECKINF();
     }
 
     // Last 2 steps
@@ -214,44 +216,41 @@ namespace
 
   bitmap::uptr compute_set (std::size_t const dim)
   {
-    auto set    = create_bitmap (dim, dim);
-    auto width  = set->w;
-    auto pset   = set->bits ();
+    auto set      = create_bitmap (dim, dim);
+    auto width    = set->w;
+    auto pset     = set->bits ();
 
-    auto sdim   = static_cast<int> (dim);
+    auto sdim     = static_cast<int> (dim);
+
+    auto scale_x  = (max_x - min_x) / dim;
+    auto scale_y  = (max_y - min_y) / dim;
+
+    auto min_x_8  = _mm256_set1_ps (min_x);
+    auto scale_x_8= _mm256_set1_ps (scale_x);
+    auto shift_x_8= _mm256_set_ps (0, 1, 2, 3, 4, 5, 6, 7);
 
     #pragma omp parallel for schedule(guided)
     for (auto sy = 0; sy < sdim; sy += 4)
     {
-      auto y      = static_cast<std::size_t> (sy);
-      auto scalex = (max_x - min_x) / dim;
-      auto scaley = (max_y - min_y) / dim;
+      auto y                  = static_cast<std::size_t> (sy);
 
-      auto incx   = _mm256_set_ps (
-          0*scalex
-        , 1*scalex
-        , 2*scalex
-        , 3*scalex
-        , 4*scalex
-        , 5*scalex
-        , 6*scalex
-        , 7*scalex
-        );
+      auto cy0                = _mm256_set1_ps (scale_y*y + min_y);
+      auto cy1                = _mm256_add_ps  (cy0, _mm256_set1_ps (1*scale_y));
+      auto cy2                = _mm256_add_ps  (cy0, _mm256_set1_ps (2*scale_y));
+      auto cy3                = _mm256_add_ps  (cy0, _mm256_set1_ps (3*scale_y));
 
-      auto last_reached_full = false;
+      auto yoffset            = width*y;
 
-      auto yoffset = width*y;
+      auto last_reached_full  = false;
+
       for (auto w = 0U; w < width; ++w)
       {
-        auto x      = w*8;
-        auto cx0    = _mm256_add_ps  (_mm256_set1_ps (scalex*x + min_x), incx);
-        auto cy0    = _mm256_set1_ps (scaley*y + min_y);
-        auto cy1    = _mm256_add_ps  (cy0, _mm256_set1_ps (1*scaley));
-        auto cy2    = _mm256_add_ps  (cy0, _mm256_set1_ps (2*scaley));
-        auto cy3    = _mm256_add_ps  (cy0, _mm256_set1_ps (3*scaley));
+        auto x    = w*8;
+        auto x_8  = _mm256_set1_ps (x);
+        auto cx0  = _mm256_add_ps (min_x_8, _mm256_mul_ps (_mm256_add_ps (x_8, shift_x_8), scale_x_8));
         __m256 cx[] = { cx0, cx0, cx0, cx0 };
         __m256 cy[] = { cy0, cy1, cy2, cy3 };
-        auto bits2  = 
+        auto bits2  =
           last_reached_full
             ? mandelbrot_avx_full (cx, cy)
             : mandelbrot_avx (cx, cy)
@@ -287,7 +286,7 @@ int main (int argc, char const * argv[])
 
   std::printf ("Generating mandelbrot set %dx%d(50)\n", dim, dim);
 
-  auto res  = time_it ([dim] { return compute_set(dim); });
+  auto res  = time_it ([dim] { return compute_set (dim); });
 
   auto ms   = std::get<0> (res);
   auto& set = std::get<1> (res);
