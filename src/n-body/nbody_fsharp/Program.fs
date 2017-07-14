@@ -72,18 +72,19 @@ module NBodySystem =
       b "Neptune" 1.53796971148509165e+01 -2.59193146099879641e+01  1.79258772950371181e-01   2.68067772490389322e-03   1.62824170038242295e-03 -9.51592254519715870e-05  5.15138902046611451e-05 
     |]
 
-  let pairs =
+  let ipairs =
     [|
       for i = 0 to bodies.Length - 2 do
         for j = i + 1 to bodies.Length - 1 do
-          yield bodies.[i], bodies.[j]
+          yield i, j
     |]
 
-  let sun =
+  let pairs = ipairs |> Array.map (fun (i, j) -> bodies.[i], bodies.[j])
+
+  do
     let sun       = bodies.[0]
     let tp        = bodies |> Array.fold (fun p (b : Body) -> v3_add p (v3_scale b.Mass b.Velocity)) v3_zero
     sun.Velocity  <- v3_scale (-1./referenceMass) tp
-    sun
 
   let advance step =
     for (b1, b2) in pairs do
