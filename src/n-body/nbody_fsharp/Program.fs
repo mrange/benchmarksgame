@@ -1,4 +1,39 @@
-﻿module NBodySystem =
+﻿// ----------------------------------------------------------------------------------------------
+// Copyright 2017 Mårten Rånge
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ----------------------------------------------------------------------------------------------
+
+let clock =
+  let sw = System.Diagnostics.Stopwatch ()
+  sw.Start ()
+  fun () -> sw.ElapsedMilliseconds
+
+let timeIt a =
+  System.GC.Collect (2, System.GCCollectionMode.Forced, true)
+
+  let inline cc g       = System.GC.CollectionCount g
+  let bcc0, bcc1, bcc2  = cc 0, cc 1, cc 2
+  let before            = clock ()
+
+  let r                 = a ()
+
+  let after             = clock ()
+  let acc0, acc1, acc2  = cc 0, cc 1, cc 2
+
+  after - before, acc0 - bcc0, acc1 - bcc1, acc2 - bcc2, r
+
+module NBodySystem =
 
   //open System.Numerics
 
@@ -11,6 +46,7 @@
   let inline v3_l2     v                                             = v3_dot v v
   let inline v3_l1     v                                             = sqrt (v3_l2 v)
   let inline v3_scale  s (Vector3 (x, y, z))                         = v3_new (s*x) (s*y) (s*z)
+  let inline v3_sub    (Vector3 (lx, ly, lz)) (Vector3 (rx, ry, rz)) = v3_new (lx-rx) (ly-ry) (lz-rz)
 
   let v3_zero                                                       = v3_new 0. 0. 0.
 
@@ -49,25 +85,39 @@
     sun.Velocity  <- v3_scale (-1./referenceMass) tp
     sun
 
-  let energy (b : Body) =
-    let me = 0.5 * b.Mass * (v3_l2 b.Velocity)
-    let se = bodies |> Array.sumBy (fun bb -> 
-      let diff = v3_add bb.Position (v3_scale -1. b.Position) 
-      let l1   = v3_l1 diff
-      bb.Mass*b.Mass / l1
-      )
-    me - se
+  let advance step =
+    for (b1, b2) in pairs do
+      let delta = v3_sub b1.Position b2.Position
+      let l2    = v3_dot delta delta
+      let mag   = step / (l2 * sqrt l2)
+      b1.Velocity <- v3_sub b1.Velocity (v3_scale (b2.Mass*mag) delta)
+      b2.Velocity <- v3_add b2.Velocity (v3_scale (b1.Mass*mag) delta)
+    for b in bodies do
+      b.Position <- v3_add b.Position (v3_scale step b.Velocity)
 
   let totalEnergy () = 
     let me = bodies |> Array.sumBy (fun b -> 0.5 * b.Mass * (v3_l2 b.Velocity))
     let se = pairs  |> Array.sumBy (fun (b1, b2) ->
-      let diff = v3_add b1.Position (v3_scale -1. b2.Position) 
-      let l1   = v3_l1 diff
+      let delta = v3_sub b1.Position b2.Position
+      let l1    = v3_l1 delta
       b1.Mass*b2.Mass / l1
       )
-    me + se
+    me - se
 
 [<EntryPoint>]
 let main argv = 
-  printfn "Energy before: %A" <| NBodySystem.totalEnergy ()
+  let n =
+    let n = if argv.Length > 0 then int argv.[0] else 1000
+    max n 1000
+  let step = 0.01
+
+  let compute () =
+    printfn "%.9f" <| NBodySystem.totalEnergy ()
+    for i = 1 to n do NBodySystem.advance step
+    printfn "%.9f" <| NBodySystem.totalEnergy ()
+
+  printfn "Nbody problem (Jovian): n=%d, step=%f" n step
+  let ms, cc0, cc1, cc2, _ = timeIt compute
+  printfn "  ... %d ms, (%d, %d, %d) GC" ms cc0 cc1 cc2
+
   0

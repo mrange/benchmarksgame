@@ -8,7 +8,7 @@ using System;
 
 class NBody {
     public static void Main(String[] args) {
-        int n = args.Length > 0 ? Int32.Parse(args[0]) : 10000;
+        int n = args.Length > 0 ? Int32.Parse(args[0]) : 1000;
         NBodySystem bodies = new NBodySystem();
         Console.WriteLine("{0:f9}", bodies.Energy());
         for (int i = 0; i < n; i++) bodies.Advance(0.01);
