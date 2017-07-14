@@ -13,6 +13,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "mandelbrot_fsharp", "mandel
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "mandelbrot_fsharp2", "mandelbrot\mandelbrot_fsharp2\mandelbrot_fsharp2.fsproj", "{689545C0-7CD5-4D01-9736-016EA6EADA64}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "mandelbrot", "mandelbrot", "{BE134C3C-E34D-40B6-84E2-3FD3CDED31E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -80,5 +82,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FDB2E19B-C268-47EF-B0BE-98A15501C4D6} = {BE134C3C-E34D-40B6-84E2-3FD3CDED31E1}
+		{DFB9187A-91B8-4FC7-8246-3DCA290495D5} = {BE134C3C-E34D-40B6-84E2-3FD3CDED31E1}
+		{93BC4373-33D7-436E-8DA0-50959AB17B95} = {BE134C3C-E34D-40B6-84E2-3FD3CDED31E1}
+		{5D6AEB41-9E21-401B-9770-6D9639CCA883} = {BE134C3C-E34D-40B6-84E2-3FD3CDED31E1}
+		{689545C0-7CD5-4D01-9736-016EA6EADA64} = {BE134C3C-E34D-40B6-84E2-3FD3CDED31E1}
 	EndGlobalSection
 EndGlobal
