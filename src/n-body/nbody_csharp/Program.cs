@@ -8,11 +8,15 @@ using System;
 
 class NBody {
     public static void Main(String[] args) {
-        int n = args.Length > 0 ? Int32.Parse(args[0]) : 1000;
+        int n = args.Length > 0 ? Int32.Parse(args[0]) : 10000;
+        var sw = new System.Diagnostics.Stopwatch ();
+        sw.Start ();
         NBodySystem bodies = new NBodySystem();
         Console.WriteLine("{0:f9}", bodies.Energy());
         for (int i = 0; i < n; i++) bodies.Advance(0.01);
         Console.WriteLine("{0:f9}", bodies.Energy());
+        sw.Stop ();
+        Console.WriteLine ("Took {0} ms for n={1}", sw.ElapsedMilliseconds, n);
     }
 }
 
