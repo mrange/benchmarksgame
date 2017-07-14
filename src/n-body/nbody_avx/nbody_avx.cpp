@@ -44,7 +44,7 @@
 (2, 3)
 */
 
-#define NBODY_INLINE inline
+#define NBODY_INLINE __forceinline
 
 namespace
 {
@@ -67,6 +67,13 @@ namespace
   constexpr auto pi             = 3.141592653589793  ;
   constexpr auto reference_mass = 4.*pi*pi           ;
   constexpr auto days_per_year  = 365.24             ;
+
+  NBODY_INLINE auto sqrt (double v)
+  {
+    auto v2 = _mm_set1_pd (v);
+    auto s2 = _mm_sqrt_sd (v2, v2);
+    return s2.m128d_f64[0];
+  }
 
   NBODY_INLINE auto v3 (double x, double y, double z) noexcept
   {
@@ -92,7 +99,7 @@ namespace
 
   NBODY_INLINE auto v3_l1 (__m256d v)
   {
-    return std::sqrt (v3_l2 (v));
+    return sqrt (v3_l2 (v));
   }
 
   NBODY_INLINE auto operator* (__m256d v, double s) noexcept
@@ -156,7 +163,7 @@ namespace
     auto & b2   = bodies[j];
     auto delta  = b1.position - b2.position;
     auto l2     = v3_l2 (delta);
-    auto mag    = step / (l2*std::sqrt (l2)); // TODO: reciprocal sqrt?
+    auto mag    = step / (l2*sqrt (l2)); // TODO: reciprocal sqrt?
     b1.velocity = b1.velocity - delta*(mag*b2.mass);
     b2.velocity = b2.velocity + delta*(mag*b1.mass);
   }
