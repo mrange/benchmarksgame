@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.15
+VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mandelbrot_reference", "mandelbrot\mandelbrot_reference\mandelbrot_reference.vcxproj", "{FDB2E19B-C268-47EF-B0BE-98A15501C4D6}"
 EndProject
@@ -22,6 +22,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nbody_csharp", "n-body\nbody_csharp\nbody_csharp.csproj", "{AE34FE7E-45F5-4547-BD57-6AB89E2F7FB7}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nbody_avx", "n-body\nbody_avx\nbody_avx.vcxproj", "{99AEFF94-5DCA-4F9F-BC31-7C54C3390F95}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nbody_plainc", "n-body\nbody_plainc\nbody_plainc.vcxproj", "{AF398D96-5DEB-442D-90F0-9B383D15CECB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -121,6 +123,16 @@ Global
 		{99AEFF94-5DCA-4F9F-BC31-7C54C3390F95}.Release|x64.Build.0 = Release|x64
 		{99AEFF94-5DCA-4F9F-BC31-7C54C3390F95}.Release|x86.ActiveCfg = Release|Win32
 		{99AEFF94-5DCA-4F9F-BC31-7C54C3390F95}.Release|x86.Build.0 = Release|Win32
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Debug|x64.ActiveCfg = Debug|x64
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Debug|x64.Build.0 = Debug|x64
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Debug|x86.ActiveCfg = Debug|Win32
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Debug|x86.Build.0 = Debug|Win32
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Release|Any CPU.ActiveCfg = Release|Win32
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Release|x64.ActiveCfg = Release|x64
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Release|x64.Build.0 = Release|x64
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Release|x86.ActiveCfg = Release|Win32
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -134,5 +146,6 @@ Global
 		{9F04DED4-98E0-4795-9AB6-C938006EFD0E} = {54189726-EA88-4131-A4B2-9FD951C607BE}
 		{AE34FE7E-45F5-4547-BD57-6AB89E2F7FB7} = {54189726-EA88-4131-A4B2-9FD951C607BE}
 		{99AEFF94-5DCA-4F9F-BC31-7C54C3390F95} = {54189726-EA88-4131-A4B2-9FD951C607BE}
+		{AF398D96-5DEB-442D-90F0-9B383D15CECB} = {54189726-EA88-4131-A4B2-9FD951C607BE}
 	EndGlobalSection
 EndGlobal

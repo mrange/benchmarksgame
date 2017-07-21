@@ -92,6 +92,19 @@ namespace
     return dotproduct.m128d_f64[0];
   }
 
+  /*
+  NBODY_INLINE auto v3_dot2 (__m256d l_1, __m256d r_1, __m256d l_2, __m256d r_2)
+  {
+    auto lr_1       = _mm256_mul_pd (l_1, r_1);
+    auto lr_2       = _mm256_mul_pd (l_2, r_2);
+    auto hadd       = _mm256_hadd_pd (lr_1, lr_2);
+    auto lo128      = _mm256_extractf128_pd (hadd, 0);
+    auto hi128      = _mm256_extractf128_pd (hadd, 1);
+    auto dotproduct = _mm_add_pd (lo128, hi128);
+    return dotproduct.m128d_f64[0];
+  }
+  */
+
   NBODY_INLINE auto v3_l2 (__m256d v)
   {
     return v3_dot (v, v);
@@ -174,6 +187,23 @@ namespace
     b.position = b.position + b.velocity*step;
   }
 
+#define UPDATE_VELOCITY(i_1, j_1, i_2, j_2)                                         \
+  {                                                                                 \
+    auto delta_1= bodies[i_1].position - bodies[j_1].position;                      \
+    auto delta_2= bodies[i_2].position - bodies[j_2].position;                      \
+    auto l2_1   = v3_l2 (delta_1);                                                  \
+    auto l2_2   = v3_l2 (delta_2);                                                  \
+    auto mag_1  = step / (l2_1*sqrt (l2_1));                                        \
+    auto mag_2  = step / (l2_2*sqrt (l2_2));                                        \
+    bodies[i_1].velocity = bodies[i_1].velocity - delta_1*(mag_1*bodies[j_1].mass); \
+    bodies[j_1].velocity = bodies[j_1].velocity + delta_1*(mag_1*bodies[i_1].mass); \
+    bodies[i_2].velocity = bodies[i_2].velocity - delta_2*(mag_2*bodies[j_2].mass); \
+    bodies[j_2].velocity = bodies[j_2].velocity + delta_2*(mag_2*bodies[i_2].mass); \
+  }                                                                 
+
+#define UPDATE_POSITION(i)                                          \
+  bodies[i].position = bodies[i].position + bodies[i].velocity*step;
+
 /*
 (0, 1)
 (3, 4)
@@ -191,36 +221,21 @@ namespace
 (2, 3)
 */
 
-  void advance (double step)
-  {
-    update_velocity (step, 0, 1);
-    update_velocity (step, 3, 4);
-
-    update_velocity (step, 0, 4);
-    update_velocity (step, 1, 2);
-
-    update_velocity (step, 0, 3);
-    update_velocity (step, 2, 4);
-
-    update_velocity (step, 0, 2);
-    update_velocity (step, 1, 3);
-
-    update_velocity (step, 1, 4);
-    update_velocity (step, 2, 3);
-
-
-    update_position (step, 0);
-    update_position (step, 1);
-    update_position (step, 2);
-    update_position (step, 3);
-    update_position (step, 4);
-  }
-
   auto advance_n (int n, double step)
   {
     for (auto i = 0; i < n; ++i)
     {
-      advance (step);
+      UPDATE_VELOCITY (0, 1, 3, 4);
+      UPDATE_VELOCITY (0, 4, 1, 2);
+      UPDATE_VELOCITY (0, 3, 2, 4);
+      UPDATE_VELOCITY (0, 2, 1, 3);
+      UPDATE_VELOCITY (1, 4, 2, 3);
+
+      UPDATE_POSITION (0);
+      UPDATE_POSITION (1);
+      UPDATE_POSITION (2);
+      UPDATE_POSITION (3);
+      UPDATE_POSITION (4);
     }
     return unit;
   }
@@ -255,7 +270,7 @@ int main(int argc, char const * argv[])
   auto n  = [argc, argv] ()
   {
     auto n = argc > 1 ? atoi (argv[1]) : 0;
-    return n > 0 ? n : 1000;
+    return n > 0 ? n : 50000000;
   } ();
   auto step   = 0.01;
 
