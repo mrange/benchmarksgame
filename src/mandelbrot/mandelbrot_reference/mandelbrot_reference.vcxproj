@@ -23,7 +23,7 @@
     <ProjectGuid>{FDB2E19B-C268-47EF-B0BE-98A15501C4D6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>mandelbrot_reference</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
